@@ -1,8 +1,10 @@
 import { NextResponse } from 'next/server';
-import { supabaseBrowser } from '@/lib/supabase';
+import { createSupabaseServerClient } from '@/lib/supabase-server';
 
 export async function GET() {
-  const { data, error } = await supabaseBrowser
+  const supabase = await createSupabaseServerClient();
+
+  const { data, error } = await supabase
     .from('sessions')
     .select('*')
     .eq('is_live', true)

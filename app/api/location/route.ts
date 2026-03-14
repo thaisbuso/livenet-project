@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { env } from '@/lib/env';
-import { supabaseAdmin, supabaseBrowser } from '@/lib/supabase';
+import { createSupabaseServerClient, createSupabaseAdminClient } from '@/lib/supabase-server';
 
 const schema = z.object({
   lat: z.number().min(-90).max(90),
@@ -27,7 +27,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Payload inválido', details: parsed.error.flatten() }, { status: 400 });
     }
 
-    const supabase = supabaseAdmin || supabaseBrowser;
+    // Usar admin client se disponível, senão usar client normal
+    const supabase = env.supabaseServiceRoleKey 
+      ? await createSupabaseAdminClient()
+      : await createSupabaseServerClient();
 
     const { data: session } = await supabase
       .from('sessions')

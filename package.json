@@ -5,12 +5,12 @@
   "scripts": {
     "dev": "next dev",
     "dev:https": "next dev --experimental-https",
-    "dev:https:lan": "next dev --hostname 0.0.0.0 --port 3000 --experimental-https --experimental-https-key .\\certs\\lan-key.pem --experimental-https-cert .\\certs\\lan-cert.pem",
     "build": "next build",
     "start": "next start",
     "lint": "next lint"
   },
   "dependencies": {
+    "@supabase/ssr": "^0.9.0",
     "@supabase/supabase-js": "^2.49.4",
     "leaflet": "^1.9.4",
     "next": "^15.2.2",

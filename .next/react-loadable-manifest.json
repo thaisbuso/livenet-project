@@ -1,11 +1,4 @@
 {
-  "app\\live\\page.tsx -> @/components/LiveMap": {
-    "id": "app\\live\\page.tsx -> @/components/LiveMap",
-    "files": [
-      "static/css/_app-pages-browser_components_LiveMap_tsx.css",
-      "static/chunks/_app-pages-browser_components_LiveMap_tsx.js"
-    ]
-  },
   "node_modules\\next\\dist\\client\\dev\\hot-reloader\\app\\use-websocket.js -> @vercel/turbopack-ecmascript-runtime/browser/dev/hmr-client/hmr-client.ts": {
     "id": "node_modules\\next\\dist\\client\\dev\\hot-reloader\\app\\use-websocket.js -> @vercel/turbopack-ecmascript-runtime/browser/dev/hmr-client/hmr-client.ts",
     "files": [
