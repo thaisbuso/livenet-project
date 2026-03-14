@@ -1,0 +1,4 @@
+certs\*.pem
+
+certificates
+node_modules
