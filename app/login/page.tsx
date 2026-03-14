@@ -11,9 +11,11 @@ export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [status, setStatus] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
+    setIsLoading(true);
     setStatus('Entrando...');
 
     const { error } = await supabase.auth.signInWithPassword({
@@ -23,6 +25,7 @@ export default function LoginPage() {
 
     if (error) {
       setStatus(error.message);
+      setIsLoading(false);
       return;
     }
 
@@ -32,33 +35,74 @@ export default function LoginPage() {
   }
 
   return (
-    <main style={{ maxWidth: 420, margin: '60px auto', padding: 24 }}>
-      <div className="card">
-        <h1 style={{ marginTop: 0 }}>Login Admin</h1>
+    <>
+      {/* Navbar */}
+      <nav className="navbar navbar-expand-lg navbar-dark">
+        <div className="container-fluid">
+          <a className="navbar-brand" href="/">
+            🚐 NAUTIMAR LIVE
+          </a>
+        </div>
+      </nav>
 
-        <form onSubmit={handleLogin} className="grid">
-          <div>
-            <label>Email</label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-            />
+      <main className="d-flex align-items-center justify-content-center" style={{ minHeight: 'calc(100vh - 70px)' }}>
+        <div className="w-100" style={{ maxWidth: 420 }}>
+          <div className="card">
+            <div className="card-body">
+              <h1 className="card-title text-center mb-4">🔐 Acesso Admin</h1>
+
+              <form onSubmit={handleLogin}>
+                {/* Email */}
+                <div className="mb-3">
+                  <label htmlFor="emailInput" className="form-label">Email</label>
+                  <input
+                    id="emailInput"
+                    type="email"
+                    className="form-control"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="seu@email.com"
+                    required
+                    disabled={isLoading}
+                  />
+                </div>
+
+                {/* Senha */}
+                <div className="mb-4">
+                  <label htmlFor="passwordInput" className="form-label">Senha</label>
+                  <input
+                    id="passwordInput"
+                    type="password"
+                    className="form-control"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="sua senha"
+                    required
+                    disabled={isLoading}
+                  />
+                </div>
+
+                {/* Botão */}
+                <button type="submit" className="btn btn-primary btn-lg w-100 mb-3" disabled={isLoading}>
+                  {isLoading ? '⏳ Entrando...' : '🚀 Entrar'}
+                </button>
+
+                {/* Status */}
+                {status && (
+                  <div className={`alert ${status.includes('sucesso') ? 'alert-success' : status.includes('Entrando') ? 'alert-info' : 'alert-danger'}`} role="alert">
+                    {status}
+                  </div>
+                )}
+              </form>
+
+              <hr className="border-warning" />
+              <p className="text-center text-muted mb-0">
+                Apenas administradores podem acessar este painel.
+              </p>
+            </div>
           </div>
-
-          <div>
-            <label>Senha</label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-            />
-          </div>
-
-          <button type="submit">Entrar</button>
-          <div>{status}</div>
-        </form>
-      </div>
-    </main>
+        </div>
+      </main>
+    </>
   );
 }

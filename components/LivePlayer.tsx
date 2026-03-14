@@ -2,8 +2,7 @@ export default function LivePlayer() {
   const embedUrl = process.env.NEXT_PUBLIC_STREAM_EMBED_URL;
 
   return (
-    <div className="card">
-      <h2 style={{ marginTop: 0 }}>Transmissão ao vivo</h2>
+    <div>
       {embedUrl ? (
         <div style={{ position: 'relative', width: '100%', paddingTop: '56.25%' }}>
           <iframe
@@ -17,13 +16,15 @@ export default function LivePlayer() {
               width: '100%',
               height: '100%',
               border: 0,
-              borderRadius: 16
+              borderRadius: 12
             }}
           />
         </div>
       ) : (
-        <div>
-          Defina <code>NEXT_PUBLIC_STREAM_EMBED_URL</code> para exibir a live.
+        <div className="alert alert-warning mb-0">
+          <strong>⚠️ Configuração necessária</strong>
+          <br />
+          Defina <code>NEXT_PUBLIC_STREAM_EMBED_URL</code> para exibir a transmissão ao vivo.
         </div>
       )}
     </div>

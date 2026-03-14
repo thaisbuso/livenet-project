@@ -23,16 +23,30 @@ export default function LiveMap({ positions }: { positions: Position[] }) {
     .map((p) => [Number(p.lat), Number(p.lng)] as [number, number]);
 
   return (
-    <div className="card">
-      <h2 style={{ marginTop: 0 }}>Mapa ao vivo</h2>
-
-      <div style={{ marginBottom: 12, fontSize: 14 }}>
-        Últimas posições carregadas: {positions.length}
-      </div>
-
+    <div>
       {latest && (
-        <div style={{ marginBottom: 12, fontSize: 14 }}>
-          Lat: {latest.lat} | Lng: {latest.lng} | Fonte: {latest.source}
+        <div className="mb-3">
+          <div className="row g-2 text-center">
+            <div className="col-6">
+              <div className="p-2 bg-dark rounded">
+                <small className="text-muted text-uppercase">Latitude</small>
+                <div className="h6 mb-0 text-warning">{latest.lat}</div>
+              </div>
+            </div>
+            <div className="col-6">
+              <div className="p-2 bg-dark rounded">
+                <small className="text-muted text-uppercase">Longitude</small>
+                <div className="h6 mb-0 text-warning">{latest.lng}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {positions.length > 0 && (
+        <div className="mb-3 text-center p-2 bg-dark rounded">
+          <small className="text-muted text-uppercase">Posições Rastreadas</small>
+          <div className="h6 mb-0 text-warning">{positions.length}</div>
         </div>
       )}
 
@@ -41,7 +55,7 @@ export default function LiveMap({ positions }: { positions: Position[] }) {
         center={center}
         zoom={15}
         scrollWheelZoom
-        style={{ height: 480 }}
+        style={{ height: 480, borderRadius: 12 }}
       >
         <TileLayer
           attribution="&copy; OpenStreetMap contributors"
@@ -53,20 +67,22 @@ export default function LiveMap({ positions }: { positions: Position[] }) {
             center={[Number(latest.lat), Number(latest.lng)]}
             radius={16}
             pathOptions={{
-              color: '#ff0000',
+              color: '#ffc107',
               weight: 4,
-              fillColor: '#ff3b30',
+              fillColor: '#ff9800',
               fillOpacity: 0.9,
             }}
           >
             <Popup>
-              Última posição
-              <br />
-              Lat: {latest.lat}
-              <br />
-              Lng: {latest.lng}
-              <br />
-              Fonte: {latest.source}
+              <div>
+                <strong>📍 Posição Atual</strong>
+                <br />
+                Lat: {latest.lat}
+                <br />
+                Lng: {latest.lng}
+                <br />
+                Fonte: {latest.source}
+              </div>
             </Popup>
           </CircleMarker>
         )}
@@ -74,7 +90,7 @@ export default function LiveMap({ positions }: { positions: Position[] }) {
         {line.length > 1 && (
           <Polyline
             positions={line}
-            pathOptions={{ color: '#00e0ff', weight: 4 }}
+            pathOptions={{ color: '#ffc107', weight: 3, opacity: 0.7 }}
           />
         )}
       </MapContainer>
