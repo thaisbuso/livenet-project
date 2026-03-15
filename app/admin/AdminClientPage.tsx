@@ -11,11 +11,29 @@ export default function AdminClientPage() {
   const [lng, setLng] = useState('-45.4138');
   const [speed, setSpeed] = useState('12');
   const [heading, setHeading] = useState('90');
-  const [token, setToken] = useState('');
+  const [sessionToken, setSessionToken] = useState<string | null>(null);
   const [status, setStatus] = useState('');
   const [autoSending, setAutoSending] = useState(false);
   const [intervalSeconds, setIntervalSeconds] = useState('5');
-  const normalizedToken = token.replace(/^Bearer\s+/i, '').trim();
+  const [activeCard, setActiveCard] = useState<string | null>(null);
+
+  const toggleCard = (cardId: string) => {
+    setActiveCard(activeCard === cardId ? null : cardId);
+  };
+
+  // Obter token de sessão do Supabase
+  useEffect(() => {
+    async function getSessionToken() {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.access_token) {
+        setSessionToken(session.access_token);
+      } else {
+        setStatus('Erro: Sessão não encontrada. Faça login novamente.');
+        router.push('/login');
+      }
+    }
+    getSessionToken();
+  }, [router, supabase.auth]);
 
   async function handleLogout() {
     await supabase.auth.signOut();
@@ -24,8 +42,8 @@ export default function AdminClientPage() {
   }
 
   async function sendManual() {
-    if (!normalizedToken) {
-      setStatus('Preencha o token admin (sem "Bearer").');
+    if (!sessionToken) {
+      setStatus('Erro: Não autenticado. Faça login novamente.');
       return;
     }
 
@@ -36,7 +54,7 @@ export default function AdminClientPage() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${normalizedToken}`,
+          Authorization: `Bearer ${sessionToken}`,
         },
         body: JSON.stringify({
           lat: Number(lat),
@@ -55,8 +73,8 @@ export default function AdminClientPage() {
   }
 
   const sendBrowserPosition = useCallback(() => {
-    if (!normalizedToken) {
-      setStatus('Preencha o token admin (sem "Bearer").');
+    if (!sessionToken) {
+      setStatus('Erro: Não autenticado. Faça login novamente.');
       return;
     }
 
@@ -74,7 +92,7 @@ export default function AdminClientPage() {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
-              Authorization: `Bearer ${normalizedToken}`,
+              Authorization: `Bearer ${sessionToken}`,
             },
             body: JSON.stringify({
               lat: position.coords.latitude,
@@ -95,7 +113,7 @@ export default function AdminClientPage() {
         setStatus('Não foi possível capturar o GPS.');
       }
     );
-  }, [normalizedToken]);
+  }, [sessionToken]);
 
   useEffect(() => {
     if (!autoSending) return;
@@ -154,7 +172,7 @@ export default function AdminClientPage() {
 
       <main className="container-fluid py-4">
         {/* Header */}
-        <div className="card mb-4">
+        <div className={`card mb-4 ${activeCard === 'header' ? 'active' : ''}`} onClick={() => toggleCard('header')}>
           <div className="card-body">
             <h1 className="card-title mb-2">🎯 Painel de Controle</h1>
             <p className="text-muted mb-0">Transmita sua localização em tempo real para o mapa ao vivo</p>
@@ -164,25 +182,11 @@ export default function AdminClientPage() {
         <div className="row">
           {/* Coluna esquerda - Formulário */}
           <div className="col-lg-6 mb-4">
-            <div className="card">
+            <div className={`card ${activeCard === 'config' ? 'active' : ''}`} onClick={() => toggleCard('config')}>
               <div className="card-header">
                 <h2 className="card-title">⚙️ Configurações</h2>
               </div>
               <div className="card-body">
-                {/* Token */}
-                <div className="mb-3">
-                  <label htmlFor="tokenInput" className="form-label">Token Admin</label>
-                  <input
-                    id="tokenInput"
-                    type="password"
-                    className="form-control"
-                    value={token}
-                    onChange={(e) => setToken(e.target.value)}
-                    placeholder="Cole seu token ADMIN_SHARED_TOKEN"
-                  />
-                  <small className="text-muted">Sem o prefixo 'Bearer'</small>
-                </div>
-
                 {/* Intervalo */}
                 <div className="mb-3">
                   <label htmlFor="intervalInput" className="form-label">Intervalo de envio (segundos)</label>
@@ -268,7 +272,7 @@ export default function AdminClientPage() {
 
           {/* Coluna direita - Status */}
           <div className="col-lg-6 mb-4">
-            <div className="card">
+            <div className={`card ${activeCard === 'status' ? 'active' : ''}`} onClick={() => toggleCard('status')}>
               <div className="card-header">
                 <h2 className="card-title">📊 Status</h2>
               </div>

@@ -13,10 +13,11 @@ const schema = z.object({
 
 export async function POST(req: NextRequest) {
   try {
-    const auth = req.headers.get('authorization') || '';
-    const token = auth.replace('Bearer ', '').trim();
+    // Validar sess\u00e3o do Supabase ao inv\u00e9s de token fixo
+    const supabase = await createSupabaseServerClient();
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
 
-    if (!env.adminSharedToken || token !== env.adminSharedToken) {
+    if (authError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -27,12 +28,12 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Payload inválido', details: parsed.error.flatten() }, { status: 400 });
     }
 
-    // Usar admin client se disponível, senão usar client normal
-    const supabase = env.supabaseServiceRoleKey 
+    // Usar o mesmo cliente já autenticado ou admin client se disponível
+    const dbClient = env.supabaseServiceRoleKey 
       ? await createSupabaseAdminClient()
-      : await createSupabaseServerClient();
+      : supabase;
 
-    const { data: session } = await supabase
+    const { data: session } = await dbClient
       .from('sessions')
       .select('*')
       .eq('is_live', true)
@@ -44,7 +45,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Nenhuma sessão ao vivo encontrada' }, { status: 404 });
     }
 
-    const { data, error } = await supabase
+    const { data, error } = await dbClient
       .from('positions')
       .insert({
         session_id: session.id,
