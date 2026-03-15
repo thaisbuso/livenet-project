@@ -16,3 +16,12 @@ export type Position = {
   source: string | null;
   created_at: string;
 };
+
+export type Livestream = {
+  id: string;
+  youtube_url: string;
+  status: 'active' | 'ended';
+  started_at: string;
+  ended_at: string | null;
+  created_at: string;
+};

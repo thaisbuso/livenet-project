@@ -1,5 +1,39 @@
-export default function LivePlayer() {
-  const embedUrl = process.env.NEXT_PUBLIC_STREAM_EMBED_URL;
+interface LivePlayerProps {
+  youtubeUrl?: string | null;
+}
+
+export default function LivePlayer({ youtubeUrl }: LivePlayerProps) {
+  // Extrair ID do vídeo da URL do YouTube
+  const getEmbedUrl = (url: string): string | null => {
+    try {
+      const urlObj = new URL(url);
+      
+      // Já é uma URL de embed
+      if (url.includes('youtube.com/embed/')) {
+        const embedUrl = new URL(url);
+        embedUrl.searchParams.set('autoplay', '1');
+        return embedUrl.toString();
+      }
+      
+      // URL do tipo watch?v=
+      if (urlObj.hostname.includes('youtube.com') && urlObj.searchParams.has('v')) {
+        const videoId = urlObj.searchParams.get('v');
+        return `https://www.youtube.com/embed/${videoId}?autoplay=1`;
+      }
+      
+      // URL curta youtu.be
+      if (urlObj.hostname === 'youtu.be') {
+        const videoId = urlObj.pathname.slice(1);
+        return `https://www.youtube.com/embed/${videoId}?autoplay=1`;
+      }
+      
+      return null;
+    } catch {
+      return null;
+    }
+  };
+
+  const embedUrl = youtubeUrl ? getEmbedUrl(youtubeUrl) : null;
 
   return (
     <div>
@@ -22,9 +56,9 @@ export default function LivePlayer() {
         </div>
       ) : (
         <div className="alert alert-warning mb-0">
-          <strong>⚠️ Configuração necessária</strong>
+          <strong>⏳ Aguardando transmissão...</strong>
           <br />
-          Defina <code>NEXT_PUBLIC_STREAM_EMBED_URL</code> para exibir a transmissão ao vivo.
+          Nenhuma live ativa no momento. A transmissão aparecerá aqui quando o admin iniciar uma live.
         </div>
       )}
     </div>

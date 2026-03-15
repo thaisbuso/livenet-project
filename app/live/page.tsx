@@ -7,13 +7,14 @@ import LivePlayer from '@/components/LivePlayer';
 import SessionStatus from '@/components/SessionStatus';
 import BrazilTimeClock from '@/components/BrazilTimeClock';
 import { createSupabaseBrowserClient } from '@/lib/supabase';
-import { Position, Session } from '@/lib/types';
+import { Position, Session, Livestream } from '@/lib/types';
 
 const LiveMap = dynamic(() => import('@/components/LiveMap'), { ssr: false });
 
 export default function LivePage() {
   const [session, setSession] = useState<Session | null>(null);
   const [positions, setPositions] = useState<Position[]>([]);
+  const [activeLivestream, setActiveLivestream] = useState<Livestream | null>(null);
   const [activeCard, setActiveCard] = useState<string | null>(null);
 
   const toggleCard = (cardId: string) => {
@@ -24,6 +25,7 @@ export default function LivePage() {
     async function loadData() {
       const supabase = createSupabaseBrowserClient();
 
+      // Buscar sessão ativa
       const { data: sessionData } = await supabase
         .from('sessions')
         .select('*')
@@ -44,9 +46,43 @@ export default function LivePage() {
 
         setPositions(positionsData ?? []);
       }
+
+      // Buscar livestream ativa
+      const { data: livestreamData } = await supabase
+        .from('livestreams')
+        .select('*')
+        .eq('status', 'active')
+        .order('started_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      setActiveLivestream(livestreamData ?? null);
     }
 
     loadData();
+
+    // Atualizar dados a cada 30 segundos
+    const intervalId = setInterval(() => {
+      loadData();
+    }, 30000);
+
+    // Realtime subscription para livestreams
+    const supabase = createSupabaseBrowserClient();
+    const livestreamChannel = supabase
+      .channel('livestreams-changes')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'livestreams' },
+        () => {
+          loadData();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      clearInterval(intervalId);
+      livestreamChannel.unsubscribe();
+    };
   }, []);
 
   return (
@@ -97,7 +133,7 @@ export default function LivePage() {
                 <h2 className="card-title">Transmissão</h2>
               </div>
               <div className="card-body p-0">
-                <LivePlayer />
+                <LivePlayer youtubeUrl={activeLivestream?.youtube_url} />
               </div>
             </div>
           </div>

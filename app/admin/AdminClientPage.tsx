@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createSupabaseBrowserClient } from '@/lib/supabase';
 import BrazilTimeClock from '@/components/BrazilTimeClock';
+import type { Livestream } from '@/lib/types';
 
 export default function AdminClientPage() {
   const router = useRouter();
@@ -17,6 +18,10 @@ export default function AdminClientPage() {
   const [autoSending, setAutoSending] = useState(false);
   const [intervalSeconds, setIntervalSeconds] = useState('5');
   const [activeCard, setActiveCard] = useState<string | null>(null);
+  const [activeLivestream, setActiveLivestream] = useState<Livestream | null>(null);
+  const [youtubeUrl, setYoutubeUrl] = useState('');
+  const [liveStatus, setLiveStatus] = useState('');
+  const [liveDuration, setLiveDuration] = useState('');
 
   const toggleCard = (cardId: string) => {
     setActiveCard(activeCard === cardId ? null : cardId);
@@ -28,6 +33,7 @@ export default function AdminClientPage() {
       const { data: { session } } = await supabase.auth.getSession();
       if (session?.access_token) {
         setSessionToken(session.access_token);
+        fetchActiveLivestream();
       } else {
         setStatus('Erro: Sessão não encontrada. Faça login novamente.');
         router.push('/login');
@@ -35,6 +41,113 @@ export default function AdminClientPage() {
     }
     getSessionToken();
   }, [router, supabase.auth]);
+
+  // Buscar livestream ativa
+  async function fetchActiveLivestream() {
+    try {
+      const res = await fetch('/api/livestream');
+      const json = await res.json();
+      setActiveLivestream(json.livestream || null);
+      // Se há uma live ativa, iniciar captura automática de GPS
+      if (json.livestream) {
+        setAutoSending(true);
+      }
+    } catch {
+      console.error('Erro ao buscar livestream ativa');
+    }
+  }
+
+  // Iniciar livestream
+  async function startLivestream() {
+    if (!sessionToken) {
+      setLiveStatus('Erro: Não autenticado.');
+      return;
+    }
+
+    if (!youtubeUrl.trim()) {
+      setLiveStatus('Erro: URL do YouTube é obrigatória.');
+      return;
+    }
+
+    try {
+      setLiveStatus('Iniciando livestream...');
+      const res = await fetch('/api/livestream', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${sessionToken}`,
+        },
+        body: JSON.stringify({ youtube_url: youtubeUrl }),
+      });
+
+      const json = await res.json();
+      if (res.ok) {
+        setActiveLivestream(json.livestream);
+        setYoutubeUrl('');
+        setLiveStatus('Livestream iniciada com sucesso!');
+        // Iniciar captura automática de GPS
+        setAutoSending(true);
+      } else {
+        setLiveStatus(json.error || 'Erro ao iniciar livestream');
+      }
+    } catch {
+      setLiveStatus('Erro ao iniciar livestream.');
+    }
+  }
+
+  // Finalizar livestream
+  async function endLivestream() {
+    if (!sessionToken) {
+      setLiveStatus('Erro: Não autenticado.');
+      return;
+    }
+
+    try {
+      setLiveStatus('Finalizando livestream...');
+      const res = await fetch('/api/livestream', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${sessionToken}`,
+        },
+      });
+
+      const json = await res.json();
+      if (res.ok) {
+        setActiveLivestream(null);
+        setLiveStatus('Livestream finalizada com sucesso!');
+        // Parar captura automática de GPS
+        setAutoSending(false);
+      } else {
+        setLiveStatus(json.error || 'Erro ao finalizar livestream');
+      }
+    } catch {
+      setLiveStatus('Erro ao finalizar livestream.');
+    }
+  }
+
+  // Atualizar duração da live
+  useEffect(() => {
+    if (!activeLivestream) {
+      setLiveDuration('');
+      return;
+    }
+
+    function updateDuration() {
+      const startTime = new Date(activeLivestream.started_at).getTime();
+      const now = Date.now();
+      const diffMs = now - startTime;
+      const hours = Math.floor(diffMs / 3600000);
+      const minutes = Math.floor((diffMs % 3600000) / 60000);
+      const seconds = Math.floor((diffMs % 60000) / 1000);
+      setLiveDuration(`${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`);
+    }
+
+    updateDuration();
+    const intervalId = setInterval(updateDuration, 1000);
+
+    return () => clearInterval(intervalId);
+  }, [activeLivestream]);
 
   async function handleLogout() {
     await supabase.auth.signOut();
@@ -161,6 +274,13 @@ export default function AdminClientPage() {
                   {autoSending ? 'GPS ativo' : 'GPS pausado'}
                 </span>
               </li>
+              {activeLivestream && (
+                <li className="nav-item ms-3">
+                  <span className="badge badge-danger">
+                    🔴 AO VIVO {liveDuration && `• ${liveDuration}`}
+                  </span>
+                </li>
+              )}
               <li className="nav-item ms-3">
                 <BrazilTimeClock />
               </li>
@@ -184,6 +304,62 @@ export default function AdminClientPage() {
         </div>
 
         <div className="row">
+          {/* Livestream Card */}
+          <div className="col-lg-12 mb-4">
+            <div className={`card ${activeCard === 'livestream' ? 'active' : ''}`} onClick={() => toggleCard('livestream')}>
+              <div className="card-header">
+                <h2 className="card-title">🎥 Livestream do YouTube</h2>
+              </div>
+              <div className="card-body">
+                {!activeLivestream ? (
+                  <>
+                    <div className="mb-3">
+                      <label htmlFor="youtubeUrlInput" className="form-label">URL do YouTube (embed ou watch)</label>
+                      <input
+                        id="youtubeUrlInput"
+                        type="url"
+                        className="form-control"
+                        placeholder="https://www.youtube.com/watch?v=...  ou  https://www.youtube.com/embed/..."
+                        value={youtubeUrl}
+                        onChange={(e) => setYoutubeUrl(e.target.value)}
+                      />
+                      <small className="form-text text-muted">
+                        Cole a URL da sua live do YouTube aqui
+                      </small>
+                    </div>
+                    <button onClick={startLivestream} className="btn btn-danger btn-lg w-100">
+                      🔴 Iniciar Livestream
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <div className="alert alert-success mb-3">
+                      <strong>✅ Livestream Ativa</strong>
+                      <br />
+                      <span className="text-muted">Iniciada há {liveDuration}</span>
+                    </div>
+                    <div className="mb-3">
+                      <label className="form-label">URL da Live:</label>
+                      <div className="form-control-plaintext">
+                        <code>{activeLivestream.youtube_url}</code>
+                      </div>
+                    </div>
+                    <button onClick={endLivestream} className="btn btn-dark btn-lg w-100">
+                      ⏹️ Finalizar Livestream
+                    </button>
+                  </>
+                )}
+                {liveStatus && (
+                  <div className={`alert mt-3 mb-0 ${
+                    liveStatus.includes('sucesso') ? 'alert-success' : 'alert-warning'
+                  }`}>
+                    {liveStatus}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
           {/* Coluna esquerda - Formulário */}
           <div className="col-lg-6 mb-4">
             <div className={`card ${activeCard === 'config' ? 'active' : ''}`} onClick={() => toggleCard('config')}>
