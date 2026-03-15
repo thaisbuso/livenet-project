@@ -52,9 +52,12 @@ export default function HomePage() {
           <div className="col-lg-8 offset-lg-2">
             <div className={`card text-center ${activeCard === 'hero' ? 'active' : ''}`} onClick={() => toggleCard('hero')}>
               <div className="card-body py-5">
-                <h1 className="display-4 mb-3">NumbatNET MVP</h1>
+                <h1 className="first-text display-4 mb-3">NumbatNET</h1>
                 <p className="lead text-muted mb-4">
                   Transmita sua localização em tempo real com GPS para seu público
+                </p>
+                 <p className="lead text-muted mb-4">
+                  IRL Livestreaming!
                 </p>
                 <hr className="border-warning" />
                 <p className="mb-4">

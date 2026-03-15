@@ -14,7 +14,7 @@ html, body {
   margin: 0;
   padding: 0;
   font-family: 'Rajdhani', 'Inter', system-ui, sans-serif;
-  background-color: rgb(20,20,20);
+  background-color: #0a0a0a;
   color: var(--text-light);
 }
 
@@ -25,6 +25,20 @@ html, body {
 /* Customização de elementos */
 code {
   color: rgb(168, 85, 247) !important;
+}
+
+.border-2 {
+  border-width: 1px !important;
+}
+
+.card{
+  background: #0006 !important;
+}
+
+.first-text {
+  font-family: Audiowide, cursive !important;
+  font-weight: 700 !important;
+  text-transform: none !important;
 }
 
 .text-muted {
@@ -59,11 +73,13 @@ code {
 }
 
 .session-stats-card {
-    background: var(--dark-gray) !important;
+    background: none !important;
+    border: none !important;
+    box-shadow: none !important;
 }
 
 .stat-box {
-    background: #141414 !important;
+    background: #0006 !important;
 }
 
 .mb-4 {
