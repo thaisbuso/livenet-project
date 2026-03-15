@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useState } from 'react';
+import BrazilTimeClock from '@/components/BrazilTimeClock';
 
 export default function HomePage() {
   const [activeCard, setActiveCard] = useState<string | null>(null);
@@ -15,7 +16,7 @@ export default function HomePage() {
       <nav className="navbar navbar-expand-lg navbar-dark">
         <div className="container-fluid">
           <a className="navbar-brand" href="/">
-            NAUTIMAR LIVE
+            DUCKLING LIVE NET
           </a>
           <button
             className="navbar-toggler"
@@ -29,12 +30,15 @@ export default function HomePage() {
             <span className="navbar-toggler-icon"></span>
           </button>
           <div className="collapse navbar-collapse" id="navbarNav">
-            <ul className="navbar-nav ms-auto">
+            <ul className="navbar-nav ms-auto align-items-center">
               <li className="nav-item">
                 <Link href="/live" className="nav-link">Ver Live</Link>
               </li>
               <li className="nav-item">
                 <Link href="/admin" className="nav-link">Painel Admin</Link>
+              </li>
+              <li className="nav-item ms-3">
+                <BrazilTimeClock />
               </li>
             </ul>
           </div>

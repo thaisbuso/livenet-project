@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createSupabaseBrowserClient } from '@/lib/supabase';
+import BrazilTimeClock from '@/components/BrazilTimeClock';
 
 export default function AdminClientPage() {
   const router = useRouter();
@@ -154,11 +155,14 @@ export default function AdminClientPage() {
             <span className="navbar-toggler-icon"></span>
           </button>
           <div className="collapse navbar-collapse" id="navbarNav">
-            <ul className="navbar-nav ms-auto">
+            <ul className="navbar-nav ms-auto align-items-center">
               <li className="nav-item">
                 <span className={`badge ${autoSending ? 'badge-success' : 'badge-warning'}`}>
-                  {autoSending ? '🔴 GPS ativo' : '⏸️ GPS pausado'}
+                  {autoSending ? 'GPS ativo' : 'GPS pausado'}
                 </span>
+              </li>
+              <li className="nav-item ms-3">
+                <BrazilTimeClock />
               </li>
               <li className="nav-item">
                 <button onClick={handleLogout} className="btn btn-outline-danger btn-sm ms-3">

@@ -5,6 +5,7 @@ import Link from 'next/link';
 import dynamic from 'next/dynamic';
 import LivePlayer from '@/components/LivePlayer';
 import SessionStatus from '@/components/SessionStatus';
+import BrazilTimeClock from '@/components/BrazilTimeClock';
 import { createSupabaseBrowserClient } from '@/lib/supabase';
 import { Position, Session } from '@/lib/types';
 
@@ -54,7 +55,7 @@ export default function LivePage() {
       <nav className="navbar navbar-expand-lg navbar-dark">
         <div className="container-fluid">
           <a className="navbar-brand" href="/">
-            NAUTIMAR LIVE
+            DUCKLING LIVE
           </a>
           <button
             className="navbar-toggler"
@@ -68,9 +69,12 @@ export default function LivePage() {
             <span className="navbar-toggler-icon"></span>
           </button>
           <div className="collapse navbar-collapse" id="navbarNav">
-            <ul className="navbar-nav ms-auto">
+            <ul className="navbar-nav ms-auto align-items-center">
               <li className="nav-item">
                 <Link href="/" className="nav-link">Início</Link>
+              </li>
+              <li className="nav-item ms-3">
+                <BrazilTimeClock />
               </li>
             </ul>
           </div>
