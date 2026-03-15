@@ -140,7 +140,7 @@ export default function AdminClientPage() {
       <nav className="navbar navbar-expand-lg navbar-dark">
         <div className="container-fluid">
           <a className="navbar-brand" href="/">
-            🚐 NAUTIMAR LIVE
+            DUCKLING LIVE NET
           </a>
           <button
             className="navbar-toggler"
@@ -174,7 +174,7 @@ export default function AdminClientPage() {
         {/* Header */}
         <div className={`card mb-4 ${activeCard === 'header' ? 'active' : ''}`} onClick={() => toggleCard('header')}>
           <div className="card-body">
-            <h1 className="card-title mb-2">🎯 Painel de Controle</h1>
+            <h1 className="card-title mb-2">Painel de Controle</h1>
             <p className="text-muted mb-0">Transmita sua localização em tempo real para o mapa ao vivo</p>
           </div>
         </div>
@@ -184,7 +184,7 @@ export default function AdminClientPage() {
           <div className="col-lg-6 mb-4">
             <div className={`card ${activeCard === 'config' ? 'active' : ''}`} onClick={() => toggleCard('config')}>
               <div className="card-header">
-                <h2 className="card-title">⚙️ Configurações</h2>
+                <h2 className="card-title">Configurações</h2>
               </div>
               <div className="card-body">
                 {/* Intervalo */}
@@ -274,7 +274,7 @@ export default function AdminClientPage() {
           <div className="col-lg-6 mb-4">
             <div className={`card ${activeCard === 'status' ? 'active' : ''}`} onClick={() => toggleCard('status')}>
               <div className="card-header">
-                <h2 className="card-title">📊 Status</h2>
+                <h2 className="card-title">Status</h2>
               </div>
               <div className="card-body">
                 {/* Dados atuais */}

@@ -45,7 +45,7 @@ export default function LoginPage() {
       <nav className="navbar navbar-expand-lg navbar-dark">
         <div className="container-fluid">
           <a className="navbar-brand" href="/">
-            🚐 NAUTIMAR LIVE
+            NAUTIMAR LIVE
           </a>
         </div>
       </nav>
@@ -54,7 +54,7 @@ export default function LoginPage() {
         <div className="w-100" style={{ maxWidth: 420 }}>
           <div className={`card ${activeCard === 'login' ? 'active' : ''}`} onClick={() => toggleCard('login')}>
             <div className="card-body">
-              <h1 className="card-title text-center mb-4">🔐 Acesso Admin</h1>
+              <h1 className="card-title text-center mb-4">Acesso Admin</h1>
 
               <form onSubmit={handleLogin}>
                 {/* Email */}

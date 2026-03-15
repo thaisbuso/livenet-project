@@ -54,7 +54,7 @@ export default function LivePage() {
       <nav className="navbar navbar-expand-lg navbar-dark">
         <div className="container-fluid">
           <a className="navbar-brand" href="/">
-            🚐 NAUTIMAR LIVE
+            NAUTIMAR LIVE
           </a>
           <button
             className="navbar-toggler"
@@ -90,7 +90,7 @@ export default function LivePage() {
           <div className="col-lg-6 mb-4">
             <div className={`card h-100 ${activeCard === 'video' ? 'active' : ''}`} onClick={() => toggleCard('video')}>
               <div className="card-header">
-                <h2 className="card-title">📺 Transmissão</h2>
+                <h2 className="card-title">Transmissão</h2>
               </div>
               <div className="card-body p-0">
                 <LivePlayer />
@@ -101,7 +101,7 @@ export default function LivePage() {
           <div className="col-lg-6 mb-4">
             <div className={`card h-100 ${activeCard === 'map' ? 'active' : ''}`} onClick={() => toggleCard('map')}>
               <div className="card-header">
-                <h2 className="card-title">🗺️ Mapa ao Vivo</h2>
+                <h2 className="card-title">Mapa ao Vivo</h2>
               </div>
               <div className="card-body p-0">
                 <LiveMap positions={positions} />

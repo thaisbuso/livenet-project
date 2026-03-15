@@ -15,7 +15,7 @@ export default function HomePage() {
       <nav className="navbar navbar-expand-lg navbar-dark">
         <div className="container-fluid">
           <a className="navbar-brand" href="/">
-            🚐 NAUTIMAR LIVE
+            NAUTIMAR LIVE
           </a>
           <button
             className="navbar-toggler"
@@ -47,7 +47,7 @@ export default function HomePage() {
           <div className="col-lg-8 offset-lg-2">
             <div className={`card text-center ${activeCard === 'hero' ? 'active' : ''}`} onClick={() => toggleCard('hero')}>
               <div className="card-body py-5">
-                <h1 className="display-4 mb-3">🚐 NAUTIMAR LIVE MVP</h1>
+                <h1 className="display-4 mb-3">DUCKLING LIVE MVP</h1>
                 <p className="lead text-muted mb-4">
                   Transmita sua localização em tempo real com GPS para seu público
                 </p>
@@ -65,7 +65,7 @@ export default function HomePage() {
           <div className="col-md-6 mb-4">
             <div className={`card h-100 border-2 border-warning ${activeCard === 'live' ? 'active' : ''}`} onClick={() => toggleCard('live')}>
               <div className="card-body">
-                <h2 className="card-title mb-3">📺 Ver Live</h2>
+                <h2 className="card-title mb-3">Ver Live</h2>
                 <p className="text-muted mb-4">
                   Acompanhe o transmissor em tempo real através do mapa interativo. Veja sua localização, velocidade e trajetória atualizar ao vivo.
                 </p>
@@ -85,7 +85,7 @@ export default function HomePage() {
           <div className="col-md-6 mb-4">
             <div className={`card h-100 border-2 border-warning ${activeCard === 'admin' ? 'active' : ''}`} onClick={() => toggleCard('admin')}>
               <div className="card-body">
-                <h2 className="card-title mb-3">⚙️ Painel Admin</h2>
+                <h2 className="card-title mb-3">Painel Admin</h2>
                 <p className="text-muted mb-4">
                   Transmita suas coordenadas GPS. Configure o intervalo de envio e envie dados manualmente ou capture automaticamente.
                 </p>
@@ -108,7 +108,7 @@ export default function HomePage() {
           <div className="col-lg-8 offset-lg-2">
             <div className={`card bg-dark ${activeCard === 'info' ? 'active' : ''}`} onClick={() => toggleCard('info')}>
               <div className="card-body">
-                <h3 className="card-title mb-3">💡 Como usar:</h3>
+                <h3 className="card-title mb-3">Como usar:</h3>
                 <ol className="list-styled">
                   <li className="mb-3">
                     <strong>No seu celular:</strong> Acesse o <Link href="/admin" className="text-warning">Painel Admin</Link> para transmitir sua localização
@@ -130,7 +130,7 @@ export default function HomePage() {
           <div className="col-lg-8 offset-lg-2">
             <div className="text-center text-muted border-top pt-4">
               <p className="mb-0">
-                🌐 Nautimar Live MVP - Livestreaming com GPS em tempo real
+                🌐 DUCKLING Live MVP - Livestreaming com GPS em tempo real
               </p>
             </div>
           </div>
