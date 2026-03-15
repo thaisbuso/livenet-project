@@ -12,6 +12,11 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [status, setStatus] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [activeCard, setActiveCard] = useState<string | null>(null);
+
+  const toggleCard = (cardId: string) => {
+    setActiveCard(activeCard === cardId ? null : cardId);
+  };
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
@@ -47,7 +52,7 @@ export default function LoginPage() {
 
       <main className="d-flex align-items-center justify-content-center" style={{ minHeight: 'calc(100vh - 70px)' }}>
         <div className="w-100" style={{ maxWidth: 420 }}>
-          <div className="card">
+          <div className={`card ${activeCard === 'login' ? 'active' : ''}`} onClick={() => toggleCard('login')}>
             <div className="card-body">
               <h1 className="card-title text-center mb-4">🔐 Acesso Admin</h1>
 

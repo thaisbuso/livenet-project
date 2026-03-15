@@ -13,6 +13,11 @@ const LiveMap = dynamic(() => import('@/components/LiveMap'), { ssr: false });
 export default function LivePage() {
   const [session, setSession] = useState<Session | null>(null);
   const [positions, setPositions] = useState<Position[]>([]);
+  const [activeCard, setActiveCard] = useState<string | null>(null);
+
+  const toggleCard = (cardId: string) => {
+    setActiveCard(activeCard === cardId ? null : cardId);
+  };
 
   useEffect(() => {
     async function loadData() {
@@ -83,7 +88,7 @@ export default function LivePage() {
         {/* Conteúdo principal */}
         <div className="row">
           <div className="col-lg-6 mb-4">
-            <div className="card h-100">
+            <div className={`card h-100 ${activeCard === 'video' ? 'active' : ''}`} onClick={() => toggleCard('video')}>
               <div className="card-header">
                 <h2 className="card-title">📺 Transmissão</h2>
               </div>
@@ -94,7 +99,7 @@ export default function LivePage() {
           </div>
 
           <div className="col-lg-6 mb-4">
-            <div className="card h-100">
+            <div className={`card h-100 ${activeCard === 'map' ? 'active' : ''}`} onClick={() => toggleCard('map')}>
               <div className="card-header">
                 <h2 className="card-title">🗺️ Mapa ao Vivo</h2>
               </div>

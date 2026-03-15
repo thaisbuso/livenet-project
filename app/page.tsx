@@ -1,6 +1,14 @@
+'use client';
+
 import Link from 'next/link';
+import { useState } from 'react';
 
 export default function HomePage() {
+  const [activeCard, setActiveCard] = useState<string | null>(null);
+
+  const toggleCard = (cardId: string) => {
+    setActiveCard(activeCard === cardId ? null : cardId);
+  };
   return (
     <>
       {/* Navbar */}
@@ -37,7 +45,7 @@ export default function HomePage() {
         {/* Hero Section */}
         <div className="row mb-5">
           <div className="col-lg-8 offset-lg-2">
-            <div className="card text-center">
+            <div className={`card text-center ${activeCard === 'hero' ? 'active' : ''}`} onClick={() => toggleCard('hero')}>
               <div className="card-body py-5">
                 <h1 className="display-4 mb-3">🚐 NAUTIMAR LIVE MVP</h1>
                 <p className="lead text-muted mb-4">
@@ -55,7 +63,7 @@ export default function HomePage() {
         {/* Funcionalidades */}
         <div className="row mb-5">
           <div className="col-md-6 mb-4">
-            <div className="card h-100 border-2 border-warning">
+            <div className={`card h-100 border-2 border-warning ${activeCard === 'live' ? 'active' : ''}`} onClick={() => toggleCard('live')}>
               <div className="card-body">
                 <h2 className="card-title mb-3">📺 Ver Live</h2>
                 <p className="text-muted mb-4">
@@ -75,7 +83,7 @@ export default function HomePage() {
           </div>
 
           <div className="col-md-6 mb-4">
-            <div className="card h-100 border-2 border-warning">
+            <div className={`card h-100 border-2 border-warning ${activeCard === 'admin' ? 'active' : ''}`} onClick={() => toggleCard('admin')}>
               <div className="card-body">
                 <h2 className="card-title mb-3">⚙️ Painel Admin</h2>
                 <p className="text-muted mb-4">
@@ -98,7 +106,7 @@ export default function HomePage() {
         {/* Info adicional */}
         <div className="row mb-5">
           <div className="col-lg-8 offset-lg-2">
-            <div className="card bg-dark">
+            <div className={`card bg-dark ${activeCard === 'info' ? 'active' : ''}`} onClick={() => toggleCard('info')}>
               <div className="card-body">
                 <h3 className="card-title mb-3">💡 Como usar:</h3>
                 <ol className="list-styled">

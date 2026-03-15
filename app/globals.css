@@ -1,13 +1,13 @@
 /* Cores customizadas */
 :root {
-  --dark-gray: #1a1a1a;
-  --dark-gray-secondary: #2d2d2d;
+  --dark-gray: #1c1c1c;
+  --dark-gray-secondary: #111111;
   --dark-gray-tertiary: #3a3a3a;
-  --yellow-primary: #ffc107;
-  --yellow-hover: #ffb300;
+  --cyan-primary: #00d4ff;
+  --cyan-hover: #00bfe6;
   --text-light: #f5f7fa;
   --text-muted: #b7c4d3;
-  --border-color: rgba(255, 193, 7, 0.15);
+  --border-color: #e5e7eb;
 }
 
 html, body {
@@ -25,20 +25,20 @@ html, body {
 /* Navbar customizada */
 .navbar {
   background: var(--dark-gray-secondary) !important;
-  border-bottom: 3px solid var(--yellow-primary);
+  border-bottom: 3px solid var(--cyan-primary);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
 }
 
 .navbar-brand {
   font-size: 1.5rem;
   font-weight: 700;
-  color: var(--yellow-primary) !important;
+  color: var(--cyan-primary) !important;
   text-transform: uppercase;
   letter-spacing: 1px;
 }
 
 .navbar-brand:hover {
-  color: var(--yellow-hover) !important;
+  color: var(--cyan-hover) !important;
 }
 
 .nav-link {
@@ -49,7 +49,7 @@ html, body {
 }
 
 .nav-link:hover {
-  color: var(--yellow-primary) !important;
+  color: var(--cyan-primary) !important;
 }
 
 /* Container principal */
@@ -62,16 +62,28 @@ main {
 /* Cards */
 .card {
   background: var(--dark-gray-secondary);
-  border: 2px solid var(--border-color);
+  border-width: 1px;
+  border-style: solid;
+  border-color: #ffffff0d;
   border-radius: 12px;
   padding: 24px;
   transition: all 0.3s ease;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  cursor: pointer;
 }
 
 .card:hover {
-  border-color: rgba(255, 193, 7, 0.3);
-  box-shadow: 0 6px 16px rgba(255, 193, 7, 0.1);
+  border-color: #e5e7eb33;
+}
+
+.card:active {
+  box-shadow: 0 0 20px #00d4ff;
+  border-color: #00d4ff;
+}
+
+.card.active {
+  box-shadow: 0 0 20px #00d4ff;
+  border-color: #00d4ff;
 }
 
 .card-header {
@@ -81,7 +93,7 @@ main {
 }
 
 .card-title {
-  color: var(--yellow-primary);
+  color: var(--cyan-primary);
   font-weight: 700;
   font-size: 1.3rem;
   margin: 0;
@@ -116,8 +128,8 @@ input, textarea, select {
 
 input:focus, textarea:focus, select:focus {
   background: var(--dark-gray) !important;
-  border-color: var(--yellow-primary) !important;
-  box-shadow: 0 0 0 0.2rem rgba(255, 193, 7, 0.15) !important;
+  border-color: var(--cyan-primary) !important;
+  box-shadow: 0 0 0 0.2rem rgba(0, 212, 255, 0.15) !important;
   color: var(--text-light) !important;
 }
 
@@ -147,14 +159,13 @@ label {
 }
 
 .btn-primary {
-  background: var(--yellow-primary) !important;
+  background: var(--cyan-primary) !important;
   color: var(--dark-gray) !important;
 }
 
 .btn-primary:hover {
-  background: var(--yellow-hover) !important;
+  background: var(--cyan-hover) !important;
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(255, 193, 7, 0.3);
 }
 
 .btn-secondary {
@@ -194,7 +205,7 @@ label {
 }
 
 .badge-warning {
-  background: var(--yellow-primary);
+  background: var(--cyan-primary);
   color: var(--dark-gray);
 }
 
@@ -210,7 +221,7 @@ label {
 
 /* Headers e tipografia */
 h1, h2, h3, h4, h5, h6 {
-  color: var(--yellow-primary);
+  color: var(--cyan-primary);
   font-weight: 700;
 }
 
@@ -233,9 +244,9 @@ h3 { font-size: 1.5rem; }
 }
 
 .alert-warning {
-  background: rgba(255, 193, 7, 0.1);
-  border-color: var(--yellow-primary);
-  color: var(--yellow-primary);
+  background: rgba(0, 212, 255, 0.1);
+  border-color: var(--cyan-primary);
+  color: var(--cyan-primary);
 }
 
 .alert-danger {
@@ -265,9 +276,9 @@ h3 { font-size: 1.5rem; }
 
 .table thead th {
   background: var(--dark-gray-tertiary);
-  color: var(--yellow-primary);
+  color: var(--cyan-primary);
   border-color: var(--border-color);
-  border-bottom: 2px solid var(--yellow-primary);
+  border-bottom: 2px solid var(--cyan-primary);
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -279,7 +290,7 @@ h3 { font-size: 1.5rem; }
 }
 
 .table tbody tr:hover {
-  background: rgba(255, 193, 7, 0.05);
+  background: rgba(0, 212, 255, 0.05);
 }
 
 /* Scrollbar customizado */
@@ -292,10 +303,10 @@ h3 { font-size: 1.5rem; }
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--yellow-primary);
+  background: var(--cyan-primary);
   border-radius: 5px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--yellow-hover);
+  background: var(--cyan-hover);
 }
