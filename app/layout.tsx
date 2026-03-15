@@ -3,7 +3,7 @@ import './globals.css';
 import type { ReactNode } from 'react';
 
 export const metadata = {
-  title: 'Duckling Live MVP',
+  title: 'NexariOS - NumbatNET',
   description: 'Live + mapa em tempo real'
 };
 

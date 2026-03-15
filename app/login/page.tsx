@@ -45,8 +45,9 @@ export default function LoginPage() {
       <nav className="navbar navbar-expand-lg navbar-dark">
         <div className="container-fluid">
           <a className="navbar-brand" href="/">
-            NAUTIMAR LIVE
+            NUMBATNET
           </a>
+          <span style={{ color: '#ffffff4d', fontFamily: 'Rajdhani', marginLeft: '8px' }}>by numbatNET</span>
         </div>
       </nav>
 

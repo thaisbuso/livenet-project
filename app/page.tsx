@@ -16,8 +16,9 @@ export default function HomePage() {
       <nav className="navbar navbar-expand-lg navbar-dark">
         <div className="container-fluid">
           <a className="navbar-brand" href="/">
-            DUCKLING LIVE NET
+            Nexari OS
           </a>
+          <span style={{ color: '#ffffff4d', fontFamily: 'Rajdhani', marginLeft: '8px' }}>by numbatNET</span>
           <button
             className="navbar-toggler"
             type="button"
@@ -51,7 +52,7 @@ export default function HomePage() {
           <div className="col-lg-8 offset-lg-2">
             <div className={`card text-center ${activeCard === 'hero' ? 'active' : ''}`} onClick={() => toggleCard('hero')}>
               <div className="card-body py-5">
-                <h1 className="display-4 mb-3">DUCKLING LIVE MVP</h1>
+                <h1 className="display-4 mb-3">NumbatNET MVP</h1>
                 <p className="lead text-muted mb-4">
                   Transmita sua localização em tempo real com GPS para seu público
                 </p>
@@ -134,7 +135,7 @@ export default function HomePage() {
           <div className="col-lg-8 offset-lg-2">
             <div className="text-center text-muted border-top pt-4">
               <p className="mb-0">
-                🌐 DUCKLING Live MVP - Livestreaming com GPS em tempo real
+                🌐 NexariOS by NumbatNET - Livestreaming com GPS em tempo real
               </p>
             </div>
           </div>

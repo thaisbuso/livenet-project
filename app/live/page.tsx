@@ -5,6 +5,7 @@ import Link from 'next/link';
 import dynamic from 'next/dynamic';
 import LivePlayer from '@/components/LivePlayer';
 import SessionStatus from '@/components/SessionStatus';
+import SessionStats from '@/components/SessionStats';
 import BrazilTimeClock from '@/components/BrazilTimeClock';
 import { createSupabaseBrowserClient } from '@/lib/supabase';
 import { Position, Session, Livestream } from '@/lib/types';
@@ -91,8 +92,9 @@ export default function LivePage() {
       <nav className="navbar navbar-expand-lg navbar-dark">
         <div className="container-fluid">
           <a className="navbar-brand" href="/">
-            DUCKLING LIVE
+            NEXARI OS 
           </a>
+          <span style={{ color: '#ffffff4d', fontFamily: 'Rajdhani', marginLeft: '8px' }}>by NumbatNET</span>
           <button
             className="navbar-toggler"
             type="button"
@@ -122,6 +124,13 @@ export default function LivePage() {
         <div className="row mb-4">
           <div className="col-12">
             <SessionStatus session={session} />
+          </div>
+        </div>
+
+        {/* Estatísticas da sessão */}
+        <div className="row mb-4">
+          <div className="col-12">
+            <SessionStats />
           </div>
         </div>
 

@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createSupabaseBrowserClient } from '@/lib/supabase';
 import BrazilTimeClock from '@/components/BrazilTimeClock';
+import SessionStats from '@/components/SessionStats';
 import type { Livestream } from '@/lib/types';
 
 export default function AdminClientPage() {
@@ -254,8 +255,9 @@ export default function AdminClientPage() {
       <nav className="navbar navbar-expand-lg navbar-dark">
         <div className="container-fluid">
           <a className="navbar-brand" href="/">
-            DUCKLING LIVE NET
+            Nexari OS
           </a>
+          <span style={{ color: '#ffffff4d', fontFamily: 'Rajdhani', marginLeft: '8px' }}>by numbatNET</span>
           <button
             className="navbar-toggler"
             type="button"
@@ -300,6 +302,13 @@ export default function AdminClientPage() {
           <div className="card-body">
             <h1 className="card-title mb-2">Painel de Controle</h1>
             <p className="text-muted mb-0">Transmita sua localização em tempo real para o mapa ao vivo</p>
+          </div>
+        </div>
+
+        {/* Estatísticas da sessão */}
+        <div className="row mb-4">
+          <div className="col-12">
+            <SessionStats />
           </div>
         </div>
 

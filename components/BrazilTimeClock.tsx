@@ -20,8 +20,8 @@ export default function BrazilTimeClock() {
     // Initial update
     updateTime();
 
-    // Update every minute
-    const interval = setInterval(updateTime, 60000);
+    // Update every second
+    const interval = setInterval(updateTime, 1000);
 
     return () => clearInterval(interval);
   }, []);
