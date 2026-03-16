@@ -1,32 +1,45 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import Link from 'next/link';
 import dynamic from 'next/dynamic';
-import LivePlayer from '@/components/LivePlayer';
-import SessionStatus from '@/components/SessionStatus';
-import SessionStats from '@/components/SessionStats';
 import BrazilTimeClock from '@/components/BrazilTimeClock';
+import TelemetryOverlay from '@/components/live/TelemetryOverlay';
+import LiveSidePanel from '@/components/live/LiveSidePanel';
 import { createSupabaseBrowserClient } from '@/lib/supabase';
 import { Position, Session, Livestream } from '@/lib/types';
+import './live.css';
 
 const LiveMap = dynamic(() => import('@/components/LiveMap'), { ssr: false });
 
-export default function LivePage() {
-  const [session, setSession] = useState<Session | null>(null);
-  const [positions, setPositions] = useState<Position[]>([]);
-  const [activeLivestream, setActiveLivestream] = useState<Livestream | null>(null);
-  const [activeCard, setActiveCard] = useState<string | null>(null);
+type Stats = {
+  distanceKm: number;
+  durationMs: number;
+  livestreamsCount: number;
+};
 
-  const toggleCard = (cardId: string) => {
-    setActiveCard(activeCard === cardId ? null : cardId);
-  };
+function formatDuration(ms: number): string {
+  const totalHours = Math.floor(ms / 3600000);
+  const minutes = Math.floor((ms % 3600000) / 60000);
+  if (totalHours >= 24) {
+    const days = Math.floor(totalHours / 24);
+    const hours = totalHours % 24;
+    return `${days}d ${hours}h ${minutes}m`;
+  }
+  if (totalHours > 0) return `${totalHours}h ${minutes}m`;
+  return `${minutes}m`;
+}
+
+export default function LivePage() {
+  const [session, setSession]               = useState<Session | null>(null);
+  const [positions, setPositions]           = useState<Position[]>([]);
+  const [activeLivestream, setActiveLivestream] = useState<Livestream | null>(null);
+  const [stats, setStats]                   = useState<Stats | null>(null);
+  const [darkMap, setDarkMap]               = useState(true);
 
   useEffect(() => {
     async function loadData() {
       const supabase = createSupabaseBrowserClient();
 
-      // Buscar sessão ativa
       const { data: sessionData } = await supabase
         .from('sessions')
         .select('*')
@@ -44,11 +57,9 @@ export default function LivePage() {
           .eq('session_id', sessionData.id)
           .order('created_at', { ascending: false })
           .limit(100);
-
         setPositions(positionsData ?? []);
       }
 
-      // Buscar livestream ativa
       const { data: livestreamData } = await supabase
         .from('livestreams')
         .select('*')
@@ -56,123 +67,122 @@ export default function LivePage() {
         .order('started_at', { ascending: false })
         .limit(1)
         .maybeSingle();
-
       setActiveLivestream(livestreamData ?? null);
     }
 
+    async function loadStats() {
+      try {
+        const res = await fetch('/api/session/stats');
+        const data = await res.json();
+        if (res.ok && data.stats) setStats(data.stats);
+      } catch { /* silently ignore */ }
+    }
+
     loadData();
+    loadStats();
 
-    // Atualizar dados a cada 30 segundos
-    const intervalId = setInterval(() => {
-      loadData();
-    }, 30000);
+    const interval = setInterval(() => { loadData(); loadStats(); }, 30000);
 
-    // Realtime subscription para livestreams
     const supabase = createSupabaseBrowserClient();
-    const livestreamChannel = supabase
-      .channel('livestreams-changes')
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'livestreams' },
-        () => {
-          loadData();
-        }
-      )
+    const channel = supabase
+      .channel('livestreams-live')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'livestreams' }, loadData)
       .subscribe();
 
-    return () => {
-      clearInterval(intervalId);
-      livestreamChannel.unsubscribe();
-    };
+    return () => { clearInterval(interval); channel.unsubscribe(); };
   }, []);
 
+  const latestPos = positions[0];
+  const avgSpeed = latestPos?.speed_knots
+    ? `${(latestPos.speed_knots * 1.852).toFixed(1)} km/h`
+    : '0 km/h';
+
   return (
-    <>
-      {/* Navbar */}
-      <nav className="navbar navbar-expand-lg navbar-dark">
-        <div className="container-fluid">
-          <a className="navbar-brand" href="/">
-            NEXARI OS 
-          </a>
-          <span style={{ color: '#ffffff4d', fontFamily: 'Rajdhani', marginLeft: '8px' }}>by NumbatNET</span>
-          <button
-            className="navbar-toggler"
-            type="button"
-            data-bs-toggle="collapse"
-            data-bs-target="#navbarNav"
-            aria-controls="navbarNav"
-            aria-expanded="false"
-            aria-label="Toggle navigation"
-          >
-            <span className="navbar-toggler-icon"></span>
-          </button>
-          <div className="collapse navbar-collapse" id="navbarNav">
-            <ul className="navbar-nav ms-auto align-items-center">
-              <li className="nav-item">
-                <Link href="/" className="nav-link">Início</Link>
-              </li>
-              <li className="nav-item ms-3">
-                <BrazilTimeClock />
-              </li>
-            </ul>
-          </div>
-        </div>
-      </nav>
+    <div className="live-dashboard">
 
-      <main className="container-fluid py-4">
-        {/* Status da sessão */}
-        <div className="row mb-4">
-          <div className="col-12">
-            <SessionStatus session={session} />
-          </div>
+      {/* ════════════════════════════════════════
+          HEADER
+      ════════════════════════════════════════ */}
+      <header className="live-header">
+        <span className="live-header-logo">NexariOS</span>
+        <span className="live-header-sub">by NumbatNET</span>
+
+        <div className="live-header-sep" />
+
+        <div className="live-header-pills">
+          {session && (
+            <span className="h-pill h-pill-cyan">
+              <span className="h-pill-dot" />
+              AO VIVO
+            </span>
+          )}
+          {stats && (
+            <>
+              <span className="h-pill h-pill-cyan">
+                {stats.distanceKm.toFixed(0)} km
+              </span>
+              <span className="h-pill h-pill-cyan">
+                {formatDuration(stats.durationMs)}
+              </span>
+            </>
+          )}
         </div>
 
-        {/* Estatísticas da sessão */}
-        <div className="row mb-4">
-          <div className="col-12">
-            <SessionStats />
+        <div className="live-header-right">
+          <span className={`h-badge ${session ? 'h-badge-live' : 'h-badge-offline'}`}>
+            {session ? '● AO VIVO' : '○ OFFLINE'}
+          </span>
+          <button className="h-btn">GPS</button>
+          <div className="h-clock">
+            <BrazilTimeClock />
           </div>
         </div>
+      </header>
 
-        {/* Conteúdo principal */}
-        <div className="row">
-          <div className="col-lg-6 mb-4">
-            <div className={`card h-100 ${activeCard === 'video' ? 'active' : ''}`} onClick={() => toggleCard('video')}>
-              <div className="card-header">
-                <h2 className="card-title">Transmissão</h2>
-              </div>
-              <div className="card-body p-0">
-                <LivePlayer youtubeUrl={activeLivestream?.youtube_url} />
-              </div>
+      {/* ════════════════════════════════════════
+          BODY
+      ════════════════════════════════════════ */}
+      <div className="live-body">
+
+        {/* ── LEFT: MAP ── */}
+        <div className="live-map-col">
+          <div className="map-panel">
+
+            {/* Floating top strip */}
+            <div className="map-panel-header">
+              <span className="map-chip">MAPA GLOBAL</span>
+              <button className="map-toggle" onClick={() => setDarkMap(d => !d)}>
+                {darkMap ? '☾ Noturno' : '☀ Diurno'}
+              </button>
             </div>
-          </div>
 
-          <div className="col-lg-6 mb-4">
-            <div className={`card h-100 ${activeCard === 'map' ? 'active' : ''}`} onClick={() => toggleCard('map')}>
-              <div className="card-header">
-                <h2 className="card-title">Mapa ao Vivo</h2>
-              </div>
-              <div className="card-body p-0">
-                <LiveMap positions={positions} />
-              </div>
+            {/* Telemetry overlay */}
+            <TelemetryOverlay
+              duration={stats ? formatDuration(stats.durationMs) : '—'}
+              avgSpeed={avgSpeed}
+              cams={stats?.livestreamsCount ?? 0}
+              viewers={0}
+            />
+
+            {/* Map fills the panel */}
+            <div className={`map-inner${darkMap ? ' map-is-dark' : ''}`}>
+              <LiveMap positions={positions} />
             </div>
+
           </div>
         </div>
 
-        {/* Info */}
-        {!session && (
-          <div className="row">
-            <div className="col-lg-8 offset-lg-2">
-              <div className="alert alert-warning alert-dismissible fade show" role="alert">
-                <strong>⏳ Aguardando transmissão...</strong>
-                <br />
-                A transmissão será iniciada quando o painel admin começar a enviar dados.
-                <button type="button" className="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-              </div>
-            </div>
-          </div>
-        )}
-      </main>
-    </>
+        {/* ── RIGHT: SIDE PANEL ── */}
+        <div className="live-side-col">
+          <LiveSidePanel
+            session={session}
+            stats={stats}
+            activeLivestream={activeLivestream}
+            formatDuration={formatDuration}
+          />
+        </div>
+
+      </div>
+    </div>
   );
 }
