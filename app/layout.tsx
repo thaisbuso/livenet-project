@@ -4,7 +4,10 @@ import type { ReactNode } from 'react';
 
 export const metadata = {
   title: 'NexariOS - NumbatNET',
-  description: 'Live + mapa em tempo real'
+  description: 'Live + mapa em tempo real',
+  icons: {
+    icon: '/assets/favicon_numbat.png',
+  },
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {

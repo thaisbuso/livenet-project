@@ -10,6 +10,7 @@ import { Position, Session, Livestream } from '@/lib/types';
 import './live.css';
 
 const LiveMap = dynamic(() => import('@/components/LiveMap'), { ssr: false });
+const PROFILE_IMAGE_URL = process.env.NEXT_PUBLIC_PROFILE_IMAGE_URL ?? '/assets/numbat.png';
 
 type Stats = {
   distanceKm: number;
@@ -165,8 +166,12 @@ export default function LivePage() {
             />
 
             {/* Map fills the panel */}
-            <div className={`map-inner${darkMap ? ' map-is-dark' : ''}`}>
-              <LiveMap positions={positions} />
+            <div className="map-inner">
+              <LiveMap
+                positions={positions}
+                darkMap={darkMap}
+                profileImageUrl={PROFILE_IMAGE_URL}
+              />
             </div>
 
           </div>
