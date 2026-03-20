@@ -3,7 +3,7 @@
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { useEffect, useRef } from 'react';
 import type { Map as MapLibreMap, GeoJSONSource, Marker as MapLibreMarker } from 'maplibre-gl';
-import { Position } from '@/lib/types';
+import { Position, MemberWithLocation } from '@/lib/types';
 
 const DARK_STYLE  = 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json';
 const LIGHT_STYLE = 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json';
@@ -31,6 +31,96 @@ function createAvatarElement(profileImageUrl: string) {
 
   markerEl.append(pulseEl, imageEl);
   return markerEl;
+}
+
+// Cria o elemento visual de marcador de membro do grupo
+function createMemberMarkerElement(name: string, color: string) {
+  const el = document.createElement('div');
+  el.style.cssText = `
+    display:flex; flex-direction:column; align-items:center; gap:3px;
+    cursor:pointer; user-select:none;
+  `;
+
+  const dot = document.createElement('div');
+  dot.style.cssText = `
+    width:26px; height:26px; border-radius:50%;
+    background:${color}22; border:2px solid ${color};
+    box-shadow:0 0 10px ${color}66;
+    display:flex; align-items:center; justify-content:center;
+    font-size:12px; font-weight:700; color:${color};
+    font-family:Rajdhani,sans-serif; transition:transform 0.2s;
+  `;
+  dot.textContent = name[0]?.toUpperCase() ?? '?';
+  dot.onmouseenter = () => { dot.style.transform = 'scale(1.15)'; };
+  dot.onmouseleave = () => { dot.style.transform = 'scale(1)'; };
+
+  const label = document.createElement('div');
+  label.style.cssText = `
+    font-size:10px; font-weight:600; color:#e8edf5;
+    font-family:Rajdhani,sans-serif;
+    background:rgba(8,11,18,0.85); border:1px solid ${color}40;
+    border-radius:4px; padding:1px 5px; white-space:nowrap;
+    letter-spacing:0.3px; max-width:80px; overflow:hidden; text-overflow:ellipsis;
+  `;
+  label.textContent = name;
+
+  el.append(dot, label);
+  return el;
+}
+
+function buildPopupHTML(member: MemberWithLocation): string {
+  const updatedAt = new Date(member.location.updated_at).toLocaleTimeString('pt-BR', {
+    hour: '2-digit', minute: '2-digit',
+  });
+  const color = member.group?.color ?? '#00d4ff';
+  return `
+    <div style="font-family:Rajdhani,sans-serif;min-width:140px;background:#0f1623;border:1px solid ${color}30;border-radius:8px;padding:10px 12px;">
+      <div style="font-size:14px;font-weight:700;color:#e8edf5;margin-bottom:4px;">${member.profile.name}</div>
+      <div style="font-size:11px;color:${color};margin-bottom:2px;">${member.group?.icon ?? ''} ${member.group?.name ?? '—'}</div>
+      <div style="font-size:10px;color:rgba(232,237,245,0.45);">Atualizado às ${updatedAt}</div>
+      <div style="font-size:10px;color:#00ff88;margin-top:4px;">● Compartilhando localização</div>
+    </div>
+  `;
+}
+
+// Sincroniza marcadores DOM de membros do grupo no mapa
+function syncMemberMarkers(
+  map: MapLibreMap,
+  maplibregl: typeof import('maplibre-gl').default,
+  members: MemberWithLocation[],
+  markerMap: Map<string, MapLibreMarker>,
+) {
+  const incoming = new Set(members.map(m => m.profile.id));
+
+  // Remove marcadores de membros que saíram da lista
+  markerMap.forEach((marker, profileId) => {
+    if (!incoming.has(profileId)) {
+      marker.remove();
+      markerMap.delete(profileId);
+    }
+  });
+
+  // Adiciona ou move marcadores dos membros ativos
+  members.forEach(member => {
+    const { profile, group, location } = member;
+    const lngLat: [number, number] = [location.lng, location.lat];
+    const color = group?.color ?? '#00d4ff';
+
+    const existing = markerMap.get(profile.id);
+    if (existing) {
+      existing.setLngLat(lngLat);
+    } else {
+      const el = createMemberMarkerElement(profile.name, color);
+      const marker = new maplibregl.Marker({ element: el, anchor: 'bottom' })
+        .setLngLat(lngLat)
+        .setPopup(
+          new maplibregl.Popup({ offset: 8, closeButton: false })
+            .setHTML(buildPopupHTML(member)),
+        )
+        .addTo(map);
+      markerMap.set(profile.id, marker);
+    }
+  });
 }
 
 function routeGeoJSON(positions: Position[]) {
@@ -89,20 +179,28 @@ export default function LiveMap({
   positions,
   darkMap = true,
   profileImageUrl = '/assets/numbat.png',
+  groupMembers = [],
 }: {
-  positions: Position[];
-  darkMap?: boolean;
+  positions:        Position[];
+  darkMap?:         boolean;
   profileImageUrl?: string;
+  // Membros de grupos com localização compartilhada — exibidos como marcadores coloridos.
+  // Telefone NÃO é usado aqui: localização vem exclusivamente do consentimento via Geolocation API.
+  groupMembers?:   MemberWithLocation[];
 }) {
-  const containerRef  = useRef<HTMLDivElement>(null);
-  const mapRef        = useRef<MapLibreMap | null>(null);
-  const markerRef     = useRef<MapLibreMarker | null>(null);
-  const markerPosRef  = useRef<[number, number] | null>(null);
-  const animationRef  = useRef<number | null>(null);
-  const positionsRef  = useRef(positions);
-  positionsRef.current = positions;
+  const containerRef     = useRef<HTMLDivElement>(null);
+  const mapRef           = useRef<MapLibreMap | null>(null);
+  const markerRef        = useRef<MapLibreMarker | null>(null);
+  const markerPosRef     = useRef<[number, number] | null>(null);
+  const animationRef     = useRef<number | null>(null);
+  const positionsRef     = useRef(positions);
+  const membersRef       = useRef(groupMembers);
+  const memberMarkersRef = useRef<Map<string, MapLibreMarker>>(new Map());
 
-  // Initialise map once
+  positionsRef.current = positions;
+  membersRef.current   = groupMembers;
+
+  // ── Inicialização do mapa (uma vez) ─────────────────────────────────────────
   useEffect(() => {
     if (typeof window === 'undefined' || !containerRef.current) return;
     let cancelled = false;
@@ -148,6 +246,9 @@ export default function LiveMap({
             { padding: 60, maxZoom: 15, duration: 0 },
           );
         }
+
+        // Re-popula marcadores de membros após troca de estilo do mapa
+        syncMemberMarkers(map, maplibregl, membersRef.current, memberMarkersRef.current);
       });
     });
 
@@ -160,17 +261,19 @@ export default function LiveMap({
       markerRef.current?.remove();
       markerRef.current = null;
       markerPosRef.current = null;
+      memberMarkersRef.current.forEach(m => m.remove());
+      memberMarkersRef.current.clear();
       mapRef.current?.remove();
       mapRef.current = null;
     };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Update data sources when positions change (without recreating the map)
+  // ── Atualiza trail GPS quando positions muda ────────────────────────────────
   useEffect(() => {
     const map = mapRef.current;
     if (!map) return;
     const routeSrc = map.getSource('route') as GeoJSONSource | undefined;
-    if (!routeSrc) return; // style not yet loaded — style.load handler will do the initial draw
+    if (!routeSrc) return; // style.load ainda não disparou, ele fará a carga inicial
     routeSrc.setData(routeGeoJSON(positions));
     (map.getSource('positions') as GeoJSONSource).setData(dotsGeoJSON(positions));
 
@@ -195,9 +298,7 @@ export default function LiveMap({
     const marker = markerRef.current;
     const start = markerPosRef.current ?? target;
 
-    if (start[0] === target[0] && start[1] === target[1]) {
-      return;
-    }
+    if (start[0] === target[0] && start[1] === target[1]) return;
 
     if (animationRef.current !== null) {
       cancelAnimationFrame(animationRef.current);
@@ -231,10 +332,19 @@ export default function LiveMap({
     markerImg.src = profileImageUrl;
   }, [profileImageUrl]);
 
-  // Switch between dark and light basemap
+  // ── Troca entre mapa escuro e claro ────────────────────────────────────────
   useEffect(() => {
     mapRef.current?.setStyle(darkMap ? DARK_STYLE : LIGHT_STYLE);
   }, [darkMap]);
+
+  // ── Sincroniza marcadores de membros de grupo ───────────────────────────────
+  useEffect(() => {
+    if (!mapRef.current) return;
+    import('maplibre-gl').then(({ default: maplibregl }) => {
+      if (!mapRef.current) return;
+      syncMemberMarkers(mapRef.current, maplibregl, groupMembers, memberMarkersRef.current);
+    });
+  }, [groupMembers]);
 
   return (
     <div ref={containerRef} style={{ width: '100%', height: '100%' }} />

@@ -5,10 +5,12 @@ import { useRouter } from 'next/navigation';
 import { createSupabaseBrowserClient } from '@/lib/supabase';
 import BrazilTimeClock from '@/components/BrazilTimeClock';
 import SessionStats from '@/components/SessionStats';
+import SocialFeedPanel from '@/components/SocialFeedPanel';
 import dynamic from 'next/dynamic';
 import type { Livestream, Position } from '@/lib/types';
 
 const LiveMap = dynamic(() => import('@/components/LiveMap'), { ssr: false });
+const GroupsPanel = dynamic(() => import('@/app/admin/groups/GroupsPanel'), { ssr: false });
 
 // ─── Design tokens ───────────────────────────────────────────────────────────
 const C = {
@@ -84,6 +86,7 @@ function Icon({ name, size = 18, color = 'currentColor' }: { name: string; size?
     play:      <svg style={s} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>,
     send:      <svg style={s} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>,
     pin:       <svg style={s} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>,
+    groups:    <svg style={s} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>,
   };
   return icons[name] ?? <span style={{ width: size, height: size, display: 'block' }} />;
 }
@@ -92,6 +95,7 @@ function Icon({ name, size = 18, color = 'currentColor' }: { name: string; size?
 const NAV_ITEMS = [
   { id: 'dashboard', label: 'Dashboard',   icon: 'dashboard' },
   { id: 'map',       label: 'Mapa ao Vivo', icon: 'map'       },
+  { id: 'grupos',    label: 'Grupos',       icon: 'groups'    },
   { id: 'network',   label: 'Rede',        icon: 'network'   },
   { id: 'alerts',    label: 'Alertas',     icon: 'alert',    badge: 7 },
   { id: 'users',     label: 'Usuários',    icon: 'users'     },
@@ -804,6 +808,7 @@ export default function AdminClientPage() {
 
   // Nav state
   const [activeSection, setActiveSection] = useState('dashboard');
+  const [adminEmail,    setAdminEmail]    = useState('');
 
   // ── Auth & init ────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -811,6 +816,7 @@ export default function AdminClientPage() {
       const { data: { session } } = await supabase.auth.getSession();
       if (session?.access_token) {
         setSessionToken(session.access_token);
+        setAdminEmail(session.user?.email ?? 'Admin');
         fetchActiveLivestream();
         fetchPositions();
       } else {
@@ -1090,6 +1096,12 @@ export default function AdminClientPage() {
           {/* Scrollable content */}
           <main className="admin-scroll" style={{ flex: 1, overflowY: 'auto', padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: 20, maxWidth: 'none', margin: 0 }}>
 
+            {/* ── Vista: Grupos ── */}
+            {activeSection === 'grupos' ? (
+              <GroupsPanel adminName={adminEmail} />
+            ) : (
+              <>
+
             {/* ── Row 1: Metric cards ── */}
             <div style={{ display: 'flex', gap: 14 }}>
               {MOCK_METRICS.map(m => (
@@ -1131,8 +1143,8 @@ export default function AdminClientPage() {
                 </div>
               </div>
 
-              {/* Events panel */}
-              <EventsPanel />
+              {/* Events panel — feed social em tempo real */}
+              <SocialFeedPanel />
             </div>
 
             {/* ── Row 3: GPS + Livestream ── */}
@@ -1180,6 +1192,9 @@ export default function AdminClientPage() {
 
             {/* ── Row 5: Activity Log ── */}
             <ActivityLog lat={lat} lng={lng} speed={speed} heading={heading} />
+
+              </>
+            )}
 
           </main>
         </div>
