@@ -16,7 +16,7 @@ type SessionStats = {
   livestreams: any[];
 };
 
-export default function SessionStats() {
+export default function SessionStats({ sessionId }: { sessionId: string }) {
   const [stats, setStats] = useState<SessionStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -25,7 +25,7 @@ export default function SessionStats() {
     async function fetchStats() {
       try {
         setLoading(true);
-        const res = await fetch('/api/session/stats');
+        const res = await fetch(`/api/session/stats?session_id=${sessionId}`);
         const data = await res.json();
 
         if (res.ok && data.stats) {
@@ -45,10 +45,9 @@ export default function SessionStats() {
 
     fetchStats();
 
-    // Atualizar estatísticas a cada 30 segundos
     const interval = setInterval(fetchStats, 30000);
     return () => clearInterval(interval);
-  }, []);
+  }, [sessionId]);
 
   // Formatar duração de forma legível
   const formatDuration = (durationMs: number) => {

@@ -1,193 +1,131 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import dynamic from 'next/dynamic';
-import BrazilTimeClock from '@/components/BrazilTimeClock';
-import TelemetryOverlay from '@/components/live/TelemetryOverlay';
-import LiveSidePanel from '@/components/live/LiveSidePanel';
+import { useRouter } from 'next/navigation';
 import { createSupabaseBrowserClient } from '@/lib/supabase';
-import { Position, Session, Livestream } from '@/lib/types';
-import './live.css';
+import type { Session } from '@/lib/types';
+import BrazilTimeClock from '@/components/BrazilTimeClock';
 
-const LiveMap = dynamic(() => import('@/components/LiveMap'), { ssr: false });
-const PROFILE_IMAGE_URL = process.env.NEXT_PUBLIC_PROFILE_IMAGE_URL ?? '/assets/numbat.png';
-
-type Stats = {
-  distanceKm: number;
-  durationMs: number;
-  livestreamsCount: number;
-};
-
-function formatDuration(ms: number): string {
-  const totalHours = Math.floor(ms / 3600000);
-  const minutes = Math.floor((ms % 3600000) / 60000);
-  if (totalHours >= 24) {
-    const days = Math.floor(totalHours / 24);
-    const hours = totalHours % 24;
-    return `${days}d ${hours}h ${minutes}m`;
-  }
-  if (totalHours > 0) return `${totalHours}h ${minutes}m`;
-  return `${minutes}m`;
-}
-
-export default function LivePage() {
-  const [session, setSession]               = useState<Session | null>(null);
-  const [positions, setPositions]           = useState<Position[]>([]);
-  const [activeLivestream, setActiveLivestream] = useState<Livestream | null>(null);
-  const [stats, setStats]                   = useState<Stats | null>(null);
-  const [darkMap, setDarkMap]               = useState(true);
+export default function LiveIndexPage() {
+  const router = useRouter();
+  const [sessions, setSessions] = useState<Session[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    async function loadData() {
+    async function load() {
       const supabase = createSupabaseBrowserClient();
 
-      const { data: sessionData } = await supabase
+      // Try to redirect to the most recent active session
+      const { data: activeSession } = await supabase
         .from('sessions')
-        .select('*')
+        .select('id')
         .eq('is_live', true)
         .order('created_at', { ascending: false })
         .limit(1)
         .maybeSingle();
 
-      setSession(sessionData ?? null);
-
-      if (sessionData) {
-        const { data: positionsData } = await supabase
-          .from('positions')
-          .select('*')
-          .eq('session_id', sessionData.id)
-          .order('created_at', { ascending: false })
-          .limit(100);
-        setPositions(positionsData ?? []);
+      if (activeSession) {
+        router.replace(`/live/${activeSession.id}`);
+        return;
       }
 
-      const { data: livestreamData } = await supabase
-        .from('livestreams')
+      // No active session — show all sessions so user can pick one
+      const { data: allSessions } = await supabase
+        .from('sessions')
         .select('*')
-        .eq('status', 'active')
-        .order('started_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
-      setActiveLivestream(livestreamData ?? null);
+        .order('created_at', { ascending: false })
+        .limit(20);
+
+      setSessions((allSessions ?? []) as Session[]);
+      setLoading(false);
     }
+    load();
+  }, [router]);
 
-    async function loadStats() {
-      try {
-        const res = await fetch('/api/session/stats');
-        const data = await res.json();
-        if (res.ok && data.stats) setStats(data.stats);
-      } catch { /* silently ignore */ }
-    }
+  if (loading) {
+    return (
+      <div style={{
+        minHeight: '100vh', background: '#080b12',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        fontFamily: 'Rajdhani, sans-serif', color: '#00d4ff',
+      }}>
+        <div style={{ textAlign: 'center' }}>
+          <div style={{ fontSize: 14, letterSpacing: 1, marginBottom: 8 }}>CARREGANDO...</div>
+          <div style={{ width: 40, height: 2, background: '#00d4ff', margin: '0 auto', animation: 'none' }} />
+        </div>
+      </div>
+    );
+  }
 
-    loadData();
-    loadStats();
-
-    const interval = setInterval(() => { loadData(); loadStats(); }, 30000);
-
-    const supabase = createSupabaseBrowserClient();
-    const channel = supabase
-      .channel('livestreams-live')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'livestreams' }, loadData)
-      .subscribe();
-
-    return () => { clearInterval(interval); channel.unsubscribe(); };
-  }, []);
-
-  const latestPos = positions[0];
-  const avgSpeed = latestPos?.speed_knots
-    ? `${(latestPos.speed_knots * 1.852).toFixed(1)} km/h`
-    : '0 km/h';
+  const C = {
+    bg: '#080b12', surface: '#0f1623', border: 'rgba(0,212,255,0.10)',
+    cyan: '#00d4ff', cyanDim: 'rgba(0,212,255,0.12)', green: '#00ff88',
+    text: '#e8edf5', muted: 'rgba(232,237,245,0.40)',
+  };
 
   return (
-    <div className="live-dashboard">
-
-      {/* ════════════════════════════════════════
-          HEADER
-      ════════════════════════════════════════ */}
-      <header className="live-header">
-        <span className="live-header-logo">NexariOS</span>
-        <span className="live-header-sub">by NumbatNET</span>
-
-        <div className="live-header-sep" />
-
-        <div className="live-header-pills">
-          {session && (
-            <span className="h-pill h-pill-cyan">
-              <span className="h-pill-dot" />
-              AO VIVO
-            </span>
-          )}
-          {stats && (
-            <>
-              <span className="h-pill h-pill-cyan">
-                {stats.distanceKm.toFixed(0)} km
-              </span>
-              <span className="h-pill h-pill-cyan">
-                {formatDuration(stats.durationMs)}
-              </span>
-            </>
-          )}
-        </div>
-
-        <div className="live-header-right">
-          <span className={`h-badge ${session ? 'h-badge-live' : 'h-badge-offline'}`}>
-            {session ? '● AO VIVO' : '○ OFFLINE'}
-          </span>
-          <button className="h-btn">GPS</button>
-          <div className="h-clock">
-            <BrazilTimeClock />
-          </div>
+    <div style={{ minHeight: '100vh', background: C.bg, fontFamily: 'Rajdhani, sans-serif' }}>
+      <header style={{
+        background: '#0b0f1a', borderBottom: `1px solid ${C.border}`,
+        display: 'flex', alignItems: 'center', padding: '0 32px', height: 60, gap: 16,
+      }}>
+        <span style={{ fontFamily: 'Audiowide, cursive', fontSize: 14, color: C.cyan, letterSpacing: 1 }}>NexariOS</span>
+        <span style={{ fontSize: 11, color: C.muted }}>by NumbatNET</span>
+        <div style={{ flex: 1 }} />
+        <div style={{ fontSize: 12, fontFamily: 'Roboto Mono, monospace', color: C.muted }}>
+          <BrazilTimeClock />
         </div>
       </header>
 
-      {/* ════════════════════════════════════════
-          BODY
-      ════════════════════════════════════════ */}
-      <div className="live-body">
-
-        {/* ── LEFT: MAP ── */}
-        <div className="live-map-col">
-          <div className="map-panel">
-
-            {/* Floating top strip */}
-            <div className="map-panel-header">
-              <span className="map-chip">MAPA GLOBAL</span>
-              <button className="map-toggle" onClick={() => setDarkMap(d => !d)}>
-                {darkMap ? '☾ Noturno' : '☀ Diurno'}
-              </button>
-            </div>
-
-            {/* Telemetry overlay */}
-            <TelemetryOverlay
-              duration={stats ? formatDuration(stats.durationMs) : '—'}
-              avgSpeed={avgSpeed}
-              cams={stats?.livestreamsCount ?? 0}
-              viewers={0}
-            />
-
-            {/* Map fills the panel */}
-            <div className="map-inner">
-              <LiveMap
-                positions={positions}
-                darkMap={darkMap}
-                profileImageUrl={PROFILE_IMAGE_URL}
-              />
-            </div>
-
+      <main style={{ maxWidth: 680, margin: '0 auto', padding: '48px 24px' }}>
+        {sessions.length === 0 ? (
+          <div style={{ textAlign: 'center', color: C.muted, padding: '80px 0' }}>
+            <div style={{ fontSize: 40, marginBottom: 16 }}>📡</div>
+            <div style={{ fontSize: 16, fontWeight: 700, color: C.text, marginBottom: 8 }}>Nenhuma sessão disponível</div>
+            <div style={{ fontSize: 13 }}>Aguarde o início de uma sessão ao vivo.</div>
           </div>
-        </div>
-
-        {/* ── RIGHT: SIDE PANEL ── */}
-        <div className="live-side-col">
-          <LiveSidePanel
-            session={session}
-            stats={stats}
-            activeLivestream={activeLivestream}
-            formatDuration={formatDuration}
-          />
-        </div>
-
-      </div>
+        ) : (
+          <>
+            <h1 style={{ fontSize: 20, fontWeight: 700, color: C.text, marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+              Sessões Disponíveis
+            </h1>
+            <p style={{ fontSize: 13, color: C.muted, marginBottom: 28 }}>
+              Selecione uma sessão para assistir ao vivo ou revisar o trajeto.
+            </p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {sessions.map(s => (
+                <div
+                  key={s.id}
+                  onClick={() => router.push(`/live/${s.id}`)}
+                  style={{
+                    background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12,
+                    padding: '16px 20px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 14,
+                    transition: 'all 0.18s',
+                  }}
+                  onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = 'rgba(0,212,255,0.25)'; (e.currentTarget as HTMLElement).style.background = '#111827'; }}
+                  onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = C.border; (e.currentTarget as HTMLElement).style.background = C.surface; }}
+                >
+                  <div style={{
+                    width: 10, height: 10, borderRadius: '50%', flexShrink: 0,
+                    background: s.is_live ? C.green : C.muted,
+                    boxShadow: s.is_live ? `0 0 8px ${C.green}` : 'none',
+                  }} />
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: 15, fontWeight: 700, color: C.text }}>{s.title}</div>
+                    <div style={{ fontSize: 11, color: C.muted, marginTop: 3 }}>
+                      {s.is_live ? '● AO VIVO' : '○ Encerrada'} · {new Date(s.created_at).toLocaleDateString('pt-BR')}
+                    </div>
+                  </div>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={C.muted} strokeWidth="2">
+                    <polyline points="9 18 15 12 9 6"/>
+                  </svg>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
+      </main>
     </div>
   );
 }
+

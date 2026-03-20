@@ -53,30 +53,42 @@ function shouldShow(event: ActivityEvent): boolean {
   return event.type !== 'location_updated';
 }
 
-export default function SocialFeedPanel() {
+export default function SocialFeedPanel({ sessionId }: { sessionId: string }) {
   const [events, setEvents] = useState<ActivityEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const channelRef = useRef<ReturnType<typeof createSupabaseBrowserClient>['channel'] extends ((...args: any[]) => infer R) ? R : never | null>(null);
+  const sessionGroupIdsRef = useRef<Set<string>>(new Set());
 
-  // Carga inicial
+  // Carga inicial filtrada por sessão
   useEffect(() => {
-    listActivityEvents(40)
+    setLoading(true);
+    listActivityEvents(40, sessionId)
       .then(evs => setEvents(evs.filter(shouldShow)))
       .catch(() => {})
       .finally(() => setLoading(false));
-  }, []);
+  }, [sessionId]);
+
+  // Pré-carrega os group IDs da sessão para filtrar eventos do Realtime
+  useEffect(() => {
+    const supabase = createSupabaseBrowserClient();
+    supabase.from('groups').select('id').eq('session_id', sessionId).then(({ data }) => {
+      sessionGroupIdsRef.current = new Set((data ?? []).map((g: { id: string }) => g.id));
+    });
+  }, [sessionId]);
 
   // Supabase Realtime — ouve novos eventos sociais em tempo real
   useEffect(() => {
     const supabase = createSupabaseBrowserClient();
 
     const channel = supabase
-      .channel('social-feed')
+      .channel(`social-feed-${sessionId}`)
       .on(
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'activity_events' },
         (payload) => {
           const newEvent = payload.new as ActivityEvent;
+          // Filtra client-side: só exibe eventos dos grupos desta sessão
+          if (newEvent.group_id && !sessionGroupIdsRef.current.has(newEvent.group_id)) return;
           if (shouldShow(newEvent)) {
             setEvents(prev => [newEvent, ...prev].slice(0, 50));
           }
@@ -85,7 +97,7 @@ export default function SocialFeedPanel() {
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
-  }, []);
+  }, [sessionId]);
 
   const totalShown = events.length;
 

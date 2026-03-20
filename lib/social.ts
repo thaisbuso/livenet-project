@@ -18,13 +18,22 @@ export async function logEvent(
   });
 }
 
-export async function listActivityEvents(limit = 30): Promise<ActivityEvent[]> {
+export async function listActivityEvents(limit = 30, sessionId?: string): Promise<ActivityEvent[]> {
   const supabase = createSupabaseBrowserClient();
-  const { data, error } = await supabase
+  let query = supabase
     .from('activity_events')
-    .select('*, group:groups(id,name,color), profile:profiles(id,name,phone)')
+    .select('*, group:groups(id,name,color,session_id), profile:profiles(id,name,phone)')
     .order('created_at', { ascending: false })
     .limit(limit);
+
+  if (sessionId) {
+    const { data: groups } = await supabase.from('groups').select('id').eq('session_id', sessionId);
+    const groupIds = (groups ?? []).map((g: { id: string }) => g.id);
+    if (groupIds.length === 0) return [];
+    query = query.in('group_id', groupIds);
+  }
+
+  const { data, error } = await query;
   if (error) throw error;
   return data as ActivityEvent[];
 }

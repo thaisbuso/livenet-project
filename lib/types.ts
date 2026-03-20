@@ -19,6 +19,7 @@ export type Position = {
 
 export type Livestream = {
   id: string;
+  session_id: string | null;
   youtube_url: string;
   status: 'active' | 'ended';
   started_at: string;
@@ -30,6 +31,7 @@ export type Livestream = {
 
 export type Group = {
   id: string;
+  session_id: string | null;
   name: string;
   description: string | null;
   color: string;

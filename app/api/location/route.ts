@@ -8,7 +8,8 @@ const schema = z.object({
   lng: z.number().min(-180).max(180),
   speed_knots: z.number().nullable().optional(),
   heading: z.number().nullable().optional(),
-  source: z.string().optional()
+  source: z.string().optional(),
+  session_id: z.string().uuid().optional(),
 });
 
 export async function POST(req: NextRequest) {
@@ -28,32 +29,47 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Payload inválido', details: parsed.error.flatten() }, { status: 400 });
     }
 
-    // Usar o mesmo cliente já autenticado ou admin client se disponível
-    const dbClient = env.supabaseServiceRoleKey 
+    const dbClient = env.supabaseServiceRoleKey
       ? await createSupabaseAdminClient()
       : supabase;
 
-    const { data: session } = await dbClient
-      .from('sessions')
-      .select('*')
-      .eq('is_live', true)
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .maybeSingle();
+    let sessionId = parsed.data.session_id;
 
-    if (!session) {
-      return NextResponse.json({ error: 'Nenhuma sessão ao vivo encontrada' }, { status: 404 });
+    if (sessionId) {
+      const { data: sessionData } = await dbClient
+        .from('sessions')
+        .select('id')
+        .eq('id', sessionId)
+        .maybeSingle();
+
+      if (!sessionData) {
+        return NextResponse.json({ error: 'Sessão não encontrada' }, { status: 404 });
+      }
+    } else {
+      const { data: sessionData } = await dbClient
+        .from('sessions')
+        .select('id')
+        .eq('is_live', true)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (!sessionData) {
+        return NextResponse.json({ error: 'Nenhuma sessão ao vivo encontrada' }, { status: 404 });
+      }
+
+      sessionId = sessionData.id;
     }
 
     const { data, error } = await dbClient
       .from('positions')
       .insert({
-        session_id: session.id,
+        session_id: sessionId,
         lat: parsed.data.lat,
         lng: parsed.data.lng,
         speed_knots: parsed.data.speed_knots ?? null,
         heading: parsed.data.heading ?? null,
-        source: parsed.data.source ?? 'api'
+        source: parsed.data.source ?? 'api',
       })
       .select('*')
       .single();

@@ -28,9 +28,10 @@ type Props = {
   onClose:   () => void;
   onSuccess: (group: Group) => void;
   editing?:  Group | null;
+  sessionId: string;
 };
 
-export default function CreateGroupModal({ onClose, onSuccess, editing }: Props) {
+export default function CreateGroupModal({ onClose, onSuccess, editing, sessionId }: Props) {
   const [name,        setName]        = useState(editing?.name        ?? '');
   const [description, setDescription] = useState(editing?.description ?? '');
   const [color,       setColor]       = useState(editing?.color       ?? '#00d4ff');
@@ -50,6 +51,7 @@ export default function CreateGroupModal({ onClose, onSuccess, editing }: Props)
       description: description.trim() || undefined,
       color,
       icon,
+      session_id: sessionId,
     };
 
     try {

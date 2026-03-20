@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { createSupabaseAdminClient } from '@/lib/supabase-server';
 
 // Função para calcular distância entre dois pontos usando fórmula de Haversine
@@ -14,28 +14,27 @@ function calculateDistance(lat1: number, lng1: number, lat2: number, lng2: numbe
   return R * c;
 }
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
     const supabase = await createSupabaseAdminClient();
 
-    // Buscar sessão ativa
-    const { data: session, error: sessionError } = await supabase
-      .from('sessions')
-      .select('*')
-      .eq('is_live', true)
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .maybeSingle();
+    const sessionId = req.nextUrl.searchParams.get('session_id');
+
+    let sessionQuery = supabase.from('sessions').select('*');
+    if (sessionId) {
+      sessionQuery = sessionQuery.eq('id', sessionId);
+    } else {
+      sessionQuery = sessionQuery.eq('is_live', true).order('created_at', { ascending: false }).limit(1);
+    }
+
+    const { data: session, error: sessionError } = await sessionQuery.maybeSingle();
 
     if (sessionError) {
       return NextResponse.json({ error: sessionError.message }, { status: 500 });
     }
 
     if (!session) {
-      return NextResponse.json({ 
-        error: 'Nenhuma sessão ativa encontrada',
-        stats: null 
-      }, { status: 404 });
+      return NextResponse.json({ error: 'Nenhuma sessão encontrada', stats: null }, { status: 404 });
     }
 
     // Buscar todas as posições da sessão, ordenadas por tempo
@@ -53,34 +52,23 @@ export async function GET() {
     let totalDistance = 0;
     if (positions && positions.length > 1) {
       for (let i = 1; i < positions.length; i++) {
-        const dist = calculateDistance(
-          positions[i - 1].lat,
-          positions[i - 1].lng,
-          positions[i].lat,
-          positions[i].lng
+        totalDistance += calculateDistance(
+          positions[i - 1].lat, positions[i - 1].lng,
+          positions[i].lat, positions[i].lng,
         );
-        totalDistance += dist;
       }
     }
 
-    // Calcular duração da sessão
     const startTime = new Date(session.created_at).getTime();
-    const endTime = session.ended_at 
-      ? new Date(session.ended_at).getTime()
-      : Date.now();
+    const endTime = session.ended_at ? new Date(session.ended_at).getTime() : Date.now();
     const durationMs = endTime - startTime;
-    const durationDays = durationMs / (1000 * 60 * 60 * 24);
 
-    // Buscar livestreams relacionadas (todas as livestreams que iniciaram durante esta sessão)
-    const { data: livestreams, error: livestreamsError } = await supabase
+    // Busca livestreams associadas à sessão via session_id
+    const { data: livestreams } = await supabase
       .from('livestreams')
       .select('*')
-      .gte('started_at', session.created_at)
+      .eq('session_id', session.id)
       .order('started_at', { ascending: true });
-
-    if (livestreamsError) {
-      console.error('Erro ao buscar livestreams:', livestreamsError);
-    }
 
     const stats = {
       sessionId: session.id,
@@ -89,16 +77,15 @@ export async function GET() {
       startedAt: session.created_at,
       endedAt: session.ended_at,
       distanceKm: parseFloat(totalDistance.toFixed(2)),
-      durationDays: parseFloat(durationDays.toFixed(2)),
-      durationMs: durationMs,
+      durationDays: parseFloat((durationMs / (1000 * 60 * 60 * 24)).toFixed(2)),
+      durationMs,
       positionsCount: positions?.length || 0,
       livestreamsCount: livestreams?.length || 0,
-      livestreams: livestreams || []
+      livestreams: livestreams || [],
     };
 
     return NextResponse.json({ stats });
-  } catch (error) {
-    console.error('Erro ao calcular estatísticas:', error);
+  } catch {
     return NextResponse.json({ error: 'Erro interno ao calcular estatísticas' }, { status: 500 });
   }
 }

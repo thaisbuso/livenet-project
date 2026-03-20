@@ -6,14 +6,14 @@ export type CreateGroupInput = {
   description?: string;
   color?: string;
   icon?: string;
+  session_id?: string;
 };
 
-export async function listGroups(): Promise<Group[]> {
+export async function listGroups(sessionId?: string): Promise<Group[]> {
   const supabase = createSupabaseBrowserClient();
-  const { data, error } = await supabase
-    .from('groups')
-    .select('*')
-    .order('created_at', { ascending: false });
+  let query = supabase.from('groups').select('*').order('created_at', { ascending: false });
+  if (sessionId) query = query.eq('session_id', sessionId);
+  const { data, error } = await query;
   if (error) throw error;
   return data as Group[];
 }
@@ -27,6 +27,7 @@ export async function createGroup(input: CreateGroupInput): Promise<Group> {
       description: input.description?.trim() || null,
       color: input.color || '#00d4ff',
       icon: input.icon || null,
+      session_id: input.session_id ?? null,
     })
     .select()
     .single();

@@ -34,7 +34,7 @@ type GroupWithMeta = Group & {
   pendingInvites: number;
 };
 
-export default function GroupsPanel({ adminName }: { adminName?: string }) {
+export default function GroupsPanel({ adminName, sessionId }: { adminName?: string; sessionId: string }) {
   const [groups,         setGroups]         = useState<GroupWithMeta[]>([]);
   const [loading,        setLoading]        = useState(true);
   const [selectedGroup,  setSelectedGroup]  = useState<Group | null>(null);
@@ -51,7 +51,7 @@ export default function GroupsPanel({ adminName }: { adminName?: string }) {
   const loadGroups = useCallback(async () => {
     setLoading(true);
     try {
-      const gs = await listGroups();
+      const gs = await listGroups(sessionId);
 
       // Para cada grupo, conta membros e convites pendentes em paralelo
       const enriched = await Promise.all(
@@ -74,7 +74,7 @@ export default function GroupsPanel({ adminName }: { adminName?: string }) {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [sessionId]);
 
   useEffect(() => { loadGroups(); }, [loadGroups]);
 
@@ -431,6 +431,7 @@ export default function GroupsPanel({ adminName }: { adminName?: string }) {
       {showCreate && (
         <CreateGroupModal
           editing={editingGroup}
+          sessionId={sessionId}
           onClose={() => { setShowCreate(false); setEditingGroup(null); }}
           onSuccess={(group) => {
             setShowCreate(false);

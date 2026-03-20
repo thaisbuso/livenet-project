@@ -7,7 +7,7 @@ import BrazilTimeClock from '@/components/BrazilTimeClock';
 import SessionStats from '@/components/SessionStats';
 import SocialFeedPanel from '@/components/SocialFeedPanel';
 import dynamic from 'next/dynamic';
-import type { Livestream, Position } from '@/lib/types';
+import type { Livestream, Position, Session } from '@/lib/types';
 
 const LiveMap = dynamic(() => import('@/components/LiveMap'), { ssr: false });
 const GroupsPanel = dynamic(() => import('@/app/admin/groups/GroupsPanel'), { ssr: false });
@@ -237,10 +237,12 @@ function Sidebar({ active, onNavigate, onLogout }: {
 }
 
 // ─── Top Header ───────────────────────────────────────────────────────────────
-function TopHeader({ autoSending, activeLivestream, liveDuration }: {
+function TopHeader({ autoSending, activeLivestream, liveDuration, sessionTitle, onBack }: {
   autoSending: boolean;
   activeLivestream: Livestream | null;
   liveDuration: string;
+  sessionTitle: string;
+  onBack: () => void;
 }) {
   return (
     <header style={{
@@ -252,17 +254,38 @@ function TopHeader({ autoSending, activeLivestream, liveDuration }: {
       gap: 16,
       flexShrink: 0,
     }}>
-      {/* Title */}
+      {/* Back button */}
+      <button
+        onClick={onBack}
+        style={{
+          display: 'flex', alignItems: 'center', gap: 6,
+          padding: '5px 10px',
+          background: 'transparent',
+          border: `1px solid ${C.border}`,
+          borderRadius: 7,
+          color: C.muted,
+          fontSize: 11, fontFamily: 'Rajdhani, sans-serif', fontWeight: 600,
+          cursor: 'pointer', letterSpacing: 0.3,
+          whiteSpace: 'nowrap',
+        }}
+        onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = C.borderHov; (e.currentTarget as HTMLElement).style.color = C.text; }}
+        onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = C.border; (e.currentTarget as HTMLElement).style.color = C.muted; }}
+        title="Voltar para lista de sessões"
+      >
+        ← Sessões
+      </button>
+
+      {/* Session title */}
       <div style={{ flex: 1 }}>
         <span style={{
           fontFamily: 'Rajdhani, sans-serif',
           fontWeight: 700,
-          fontSize: 16,
+          fontSize: 15,
           color: C.text,
           letterSpacing: 0.5,
           textTransform: 'uppercase',
         }}>
-          Dashboard Admin
+          {sessionTitle || 'Dashboard Admin'}
         </span>
         <span style={{ marginLeft: 10, fontSize: 11, color: C.muted }}>
           Central de Controle
@@ -594,11 +617,11 @@ function GpsPanel({
 
 // ─── Livestream Panel ─────────────────────────────────────────────────────────
 function LivestreamPanel({
-  activeLivestream, youtubeUrl, liveStatus, liveDuration,
+  activeLivestream, youtubeUrl, liveStatus, liveDuration, livePageUrl,
   onUrlChange, onStart, onEnd,
 }: {
   activeLivestream: Livestream | null;
-  youtubeUrl: string; liveStatus: string; liveDuration: string;
+  youtubeUrl: string; liveStatus: string; liveDuration: string; livePageUrl: string;
   onUrlChange: (v: string) => void;
   onStart: () => void; onEnd: () => void;
 }) {
@@ -674,6 +697,30 @@ function LivestreamPanel({
             border: '1px solid currentColor',
           }}>
             {liveStatus}
+          </div>
+        )}
+
+        {livePageUrl && (
+          <div style={{
+            padding: '10px 14px', borderRadius: 8,
+            background: C.greenDim, border: '1px solid rgba(0,255,136,0.25)',
+          }}>
+            <div style={{ fontSize: 10, color: C.green, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6, fontWeight: 700 }}>
+              Link da Live
+            </div>
+            <a
+              href={livePageUrl}
+              target="_blank"
+              rel="noreferrer"
+              style={{
+                fontSize: 12, color: C.green,
+                fontFamily: 'Roboto Mono, monospace',
+                wordBreak: 'break-all',
+                textDecoration: 'underline',
+              }}
+            >
+              {typeof window !== 'undefined' ? window.location.origin : ''}{livePageUrl}
+            </a>
           </div>
         )}
       </div>
@@ -783,7 +830,7 @@ function ActivityLog({ lat, lng, speed, heading }: {
 }
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
-export default function AdminClientPage() {
+export default function AdminClientPage({ sessionId }: { sessionId: string }) {
   const router = useRouter();
   const supabase = createSupabaseBrowserClient();
 
@@ -797,11 +844,15 @@ export default function AdminClientPage() {
   const [autoSending,     setAutoSending]     = useState(false);
   const [intervalSeconds, setIntervalSeconds] = useState('5');
 
+  // Session
+  const [session, setSession] = useState<Session | null>(null);
+
   // Livestream state
   const [activeLivestream, setActiveLivestream] = useState<Livestream | null>(null);
   const [youtubeUrl,       setYoutubeUrl]       = useState('');
   const [liveStatus,       setLiveStatus]       = useState('');
   const [liveDuration,     setLiveDuration]     = useState('');
+  const [livePageUrl,      setLivePageUrl]      = useState('');
 
   // Map positions
   const [positions, setPositions] = useState<Position[]>([]);
@@ -813,10 +864,19 @@ export default function AdminClientPage() {
   // ── Auth & init ────────────────────────────────────────────────────────────
   useEffect(() => {
     async function init() {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session?.access_token) {
-        setSessionToken(session.access_token);
-        setAdminEmail(session.user?.email ?? 'Admin');
+      const { data: { session: authSession } } = await supabase.auth.getSession();
+      if (authSession?.access_token) {
+        setSessionToken(authSession.access_token);
+        setAdminEmail(authSession.user?.email ?? 'Admin');
+
+        // Fetch session data
+        const { data: sessionData } = await supabase
+          .from('sessions')
+          .select('*')
+          .eq('id', sessionId)
+          .maybeSingle();
+        setSession(sessionData);
+
         fetchActiveLivestream();
         fetchPositions();
       } else {
@@ -828,24 +888,14 @@ export default function AdminClientPage() {
     // Poll positions every 10s to keep map fresh
     const pollId = setInterval(fetchPositions, 10000);
     return () => clearInterval(pollId);
-  }, [router, supabase.auth]);
+  }, [router, supabase.auth, sessionId]);
 
   async function fetchPositions() {
     try {
-      const { data: sessionData } = await supabase
-        .from('sessions')
-        .select('*')
-        .eq('is_live', true)
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
-
-      if (!sessionData) return;
-
       const { data: positionsData } = await supabase
         .from('positions')
         .select('*')
-        .eq('session_id', sessionData.id)
+        .eq('session_id', sessionId)
         .order('created_at', { ascending: false })
         .limit(100);
 
@@ -855,7 +905,7 @@ export default function AdminClientPage() {
 
   async function fetchActiveLivestream() {
     try {
-      const res = await fetch('/api/livestream');
+      const res = await fetch(`/api/livestream?session_id=${sessionId}`);
       const json = await res.json();
       setActiveLivestream(json.livestream || null);
       if (json.livestream) setAutoSending(true);
@@ -871,10 +921,16 @@ export default function AdminClientPage() {
       const res = await fetch('/api/livestream', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${sessionToken}` },
-        body: JSON.stringify({ youtube_url: youtubeUrl }),
+        body: JSON.stringify({ youtube_url: youtubeUrl, session_id: sessionId }),
       });
       const json = await res.json();
-      if (res.ok) { setActiveLivestream(json.livestream); setYoutubeUrl(''); setLiveStatus('Livestream iniciada com sucesso!'); setAutoSending(true); }
+      if (res.ok) {
+        setActiveLivestream(json.livestream);
+        setYoutubeUrl('');
+        setLiveStatus('Livestream iniciada com sucesso!');
+        setAutoSending(true);
+        setLivePageUrl(`/live/${sessionId}`);
+      }
       else setLiveStatus(json.error || 'Erro ao iniciar livestream');
     } catch { setLiveStatus('Erro ao iniciar livestream.'); }
   }
@@ -886,9 +942,10 @@ export default function AdminClientPage() {
       const res = await fetch('/api/livestream', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${sessionToken}` },
+        body: JSON.stringify({ session_id: sessionId }),
       });
       const json = await res.json();
-      if (res.ok) { setActiveLivestream(null); setLiveStatus('Livestream finalizada com sucesso!'); setAutoSending(false); }
+      if (res.ok) { setActiveLivestream(null); setLiveStatus('Livestream finalizada com sucesso!'); setAutoSending(false); setLivePageUrl(''); }
       else setLiveStatus(json.error || 'Erro ao finalizar livestream');
     } catch { setLiveStatus('Erro ao finalizar livestream.'); }
   }
@@ -916,7 +973,7 @@ export default function AdminClientPage() {
       const res = await fetch('/api/location', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${sessionToken}` },
-        body: JSON.stringify({ lat: Number(lat), lng: Number(lng), speed_knots: Number(speed), heading: Number(heading), source: 'manual-admin' }),
+        body: JSON.stringify({ lat: Number(lat), lng: Number(lng), speed_knots: Number(speed), heading: Number(heading), source: 'manual-admin', session_id: sessionId }),
       });
       const json = await res.json();
       setStatus(res.ok ? 'Posição enviada com sucesso.' : json.error || 'Erro ao enviar');
@@ -934,7 +991,7 @@ export default function AdminClientPage() {
           const res = await fetch('/api/location', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${sessionToken}` },
-            body: JSON.stringify({ lat: pos.coords.latitude, lng: pos.coords.longitude, speed_knots: pos.coords.speed ?? null, heading: pos.coords.heading ?? null, source: 'browser-gps' }),
+            body: JSON.stringify({ lat: pos.coords.latitude, lng: pos.coords.longitude, speed_knots: pos.coords.speed ?? null, heading: pos.coords.heading ?? null, source: 'browser-gps', session_id: sessionId }),
           });
           const json = await res.json();
           setStatus(res.ok ? 'GPS enviado com sucesso.' : json.error || 'Erro ao enviar GPS');
@@ -943,7 +1000,7 @@ export default function AdminClientPage() {
       },
       () => setStatus('Não foi possível capturar o GPS.'),
     );
-  }, [sessionToken]);
+  }, [sessionToken, sessionId]);
 
   useEffect(() => {
     if (!autoSending) return;
@@ -1091,6 +1148,8 @@ export default function AdminClientPage() {
             autoSending={autoSending}
             activeLivestream={activeLivestream}
             liveDuration={liveDuration}
+            sessionTitle={session?.title ?? ''}
+            onBack={() => router.push('/admin/sessions')}
           />
 
           {/* Scrollable content */}
@@ -1098,7 +1157,7 @@ export default function AdminClientPage() {
 
             {/* ── Vista: Grupos ── */}
             {activeSection === 'grupos' ? (
-              <GroupsPanel adminName={adminEmail} />
+              <GroupsPanel adminName={adminEmail} sessionId={sessionId} />
             ) : (
               <>
 
@@ -1144,7 +1203,7 @@ export default function AdminClientPage() {
               </div>
 
               {/* Events panel — feed social em tempo real */}
-              <SocialFeedPanel />
+              <SocialFeedPanel sessionId={sessionId} />
             </div>
 
             {/* ── Row 3: GPS + Livestream ── */}
@@ -1162,7 +1221,7 @@ export default function AdminClientPage() {
               />
               <LivestreamPanel
                 activeLivestream={activeLivestream}
-                youtubeUrl={youtubeUrl} liveStatus={liveStatus} liveDuration={liveDuration}
+                youtubeUrl={youtubeUrl} liveStatus={liveStatus} liveDuration={liveDuration} livePageUrl={livePageUrl}
                 onUrlChange={setYoutubeUrl}
                 onStart={startLivestream}
                 onEnd={endLivestream}
@@ -1186,7 +1245,7 @@ export default function AdminClientPage() {
                 </span>
               </div>
               <div style={{ padding: '4px 18px 18px' }}>
-                <SessionStats />
+                <SessionStats sessionId={sessionId} />
               </div>
             </div>
 
