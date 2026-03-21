@@ -7,7 +7,8 @@ import BrazilTimeClock from '@/components/BrazilTimeClock';
 import SessionStats from '@/components/SessionStats';
 import SocialFeedPanel from '@/components/SocialFeedPanel';
 import dynamic from 'next/dynamic';
-import type { Livestream, Position, Session } from '@/lib/types';
+import type { Livestream, MemberWithLocation, Position, Session } from '@/lib/types';
+import { listMembersWithLocationBySession } from '@/lib/social';
 
 const LiveMap = dynamic(() => import('@/components/LiveMap'), { ssr: false });
 const GroupsPanel = dynamic(() => import('@/app/admin/groups/GroupsPanel'), { ssr: false });
@@ -855,7 +856,8 @@ export default function AdminClientPage({ sessionId }: { sessionId: string }) {
   const [livePageUrl,      setLivePageUrl]      = useState('');
 
   // Map positions
-  const [positions, setPositions] = useState<Position[]>([]);
+  const [positions,     setPositions]     = useState<Position[]>([]);
+  const [groupMembers,  setGroupMembers]  = useState<MemberWithLocation[]>([]);
 
   // Nav state
   const [activeSection, setActiveSection] = useState('dashboard');
@@ -879,14 +881,15 @@ export default function AdminClientPage({ sessionId }: { sessionId: string }) {
 
         fetchActiveLivestream();
         fetchPositions();
+        fetchGroupMembers();
       } else {
         router.push('/login');
       }
     }
     init();
 
-    // Poll positions every 10s to keep map fresh
-    const pollId = setInterval(fetchPositions, 10000);
+    // Poll positions and member locations every 10s to keep map fresh
+    const pollId = setInterval(() => { fetchPositions(); fetchGroupMembers(); }, 10000);
     return () => clearInterval(pollId);
   }, [router, supabase.auth, sessionId]);
 
@@ -900,6 +903,13 @@ export default function AdminClientPage({ sessionId }: { sessionId: string }) {
         .limit(100);
 
       if (positionsData) setPositions(positionsData as Position[]);
+    } catch { /* silent */ }
+  }
+
+  async function fetchGroupMembers() {
+    try {
+      const members = await listMembersWithLocationBySession(sessionId);
+      setGroupMembers(members);
     } catch { /* silent */ }
   }
 
@@ -1198,7 +1208,7 @@ export default function AdminClientPage({ sessionId }: { sessionId: string }) {
                   </div>
                 </div>
                 <div style={{ flex: 1, position: 'relative' }}>
-                  <LiveMap positions={positions} darkMap profileImageUrl="/assets/numbat.png" />
+                  <LiveMap positions={positions} darkMap profileImageUrl="/assets/numbat.png" groupMembers={groupMembers} />
                 </div>
               </div>
 

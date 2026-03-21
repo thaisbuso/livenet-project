@@ -7,7 +7,8 @@ import BrazilTimeClock from '@/components/BrazilTimeClock';
 import TelemetryOverlay from '@/components/live/TelemetryOverlay';
 import LiveSidePanel from '@/components/live/LiveSidePanel';
 import { createSupabaseBrowserClient } from '@/lib/supabase';
-import { Position, Session, Livestream } from '@/lib/types';
+import { MemberWithLocation, Position, Session, Livestream } from '@/lib/types';
+import { listMembersWithLocationBySession } from '@/lib/social';
 import '../live.css';
 
 const LiveMap = dynamic(() => import('@/components/LiveMap'), { ssr: false });
@@ -37,6 +38,7 @@ export default function LiveSessionPage() {
 
   const [session, setSession]               = useState<Session | null>(null);
   const [positions, setPositions]           = useState<Position[]>([]);
+  const [groupMembers, setGroupMembers]     = useState<MemberWithLocation[]>([]);
   const [activeLivestream, setActiveLivestream] = useState<Livestream | null>(null);
   const [stats, setStats]                   = useState<Stats | null>(null);
   const [darkMap, setDarkMap]               = useState(true);
@@ -64,6 +66,12 @@ export default function LiveSessionPage() {
         .order('created_at', { ascending: false })
         .limit(100);
       setPositions(positionsData ?? []);
+
+      // Load member locations for groups in this session
+      try {
+        const members = await listMembersWithLocationBySession(sessionId);
+        setGroupMembers(members);
+      } catch { /* silent */ }
 
       // Load active livestream for this session
       const { data: livestreamData } = await supabase
@@ -186,6 +194,7 @@ export default function LiveSessionPage() {
                 positions={positions}
                 darkMap={darkMap}
                 profileImageUrl={PROFILE_IMAGE_URL}
+                groupMembers={groupMembers}
               />
             </div>
 

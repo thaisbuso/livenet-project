@@ -110,6 +110,42 @@ export async function stopSharingLocation(profileId: string): Promise<void> {
   await logEvent('location_stopped', null, profileId);
 }
 
+export async function listMembersWithLocationBySession(sessionId: string): Promise<MemberWithLocation[]> {
+  const supabase = createSupabaseBrowserClient();
+
+  // Resolve group IDs that belong to this session
+  const { data: groups } = await supabase
+    .from('groups')
+    .select('id')
+    .eq('session_id', sessionId);
+
+  const groupIds = (groups ?? []).map((g: { id: string }) => g.id);
+  if (groupIds.length === 0) return [];
+
+  const { data, error } = await supabase
+    .from('member_locations')
+    .select('*, profile:profiles(*), group:groups(*)')
+    .in('group_id', groupIds)
+    .eq('is_sharing', true);
+
+  if (error) throw error;
+
+  return (data ?? []).map((row: any) => ({
+    profile:  row.profile,
+    group:    row.group,
+    location: {
+      id:         row.id,
+      profile_id: row.profile_id,
+      group_id:   row.group_id,
+      lat:        row.lat,
+      lng:        row.lng,
+      accuracy:   row.accuracy,
+      is_sharing: row.is_sharing,
+      updated_at: row.updated_at,
+    },
+  }));
+}
+
 export async function listMembersWithLocation(groupId?: string): Promise<MemberWithLocation[]> {
   const supabase = createSupabaseBrowserClient();
   let query = supabase

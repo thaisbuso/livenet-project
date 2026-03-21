@@ -3,6 +3,7 @@
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { useEffect, useRef } from 'react';
 import type { Map as MapLibreMap, GeoJSONSource, Marker as MapLibreMarker } from 'maplibre-gl';
+import * as maplibregl from 'maplibre-gl';
 import { Position, MemberWithLocation } from '@/lib/types';
 
 const DARK_STYLE  = 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json';
@@ -86,7 +87,7 @@ function buildPopupHTML(member: MemberWithLocation): string {
 // Sincroniza marcadores DOM de membros do grupo no mapa
 function syncMemberMarkers(
   map: MapLibreMap,
-  maplibregl: typeof import('maplibre-gl').default,
+  maplibreglModule: typeof maplibregl,
   members: MemberWithLocation[],
   markerMap: Map<string, MapLibreMarker>,
 ) {
@@ -111,10 +112,10 @@ function syncMemberMarkers(
       existing.setLngLat(lngLat);
     } else {
       const el = createMemberMarkerElement(profile.name, color);
-      const marker = new maplibregl.Marker({ element: el, anchor: 'bottom' })
+      const marker = new maplibreglModule.Marker({ element: el, anchor: 'bottom' })
         .setLngLat(lngLat)
         .setPopup(
-          new maplibregl.Popup({ offset: 8, closeButton: false })
+          new maplibreglModule.Popup({ offset: 8, closeButton: false })
             .setHTML(buildPopupHTML(member)),
         )
         .addTo(map);
@@ -205,7 +206,7 @@ export default function LiveMap({
     if (typeof window === 'undefined' || !containerRef.current) return;
     let cancelled = false;
 
-    import('maplibre-gl').then(({ default: maplibregl }) => {
+    import('maplibre-gl').then((maplibreglModule) => {
       if (cancelled || !containerRef.current) return;
 
       const first = positionsRef.current[0];
@@ -213,7 +214,7 @@ export default function LiveMap({
         ? [Number(first.lng), Number(first.lat)]
         : [-45.4138, -23.6207];
 
-      const map = new maplibregl.Map({
+      const map = new maplibreglModule.Map({
         container: containerRef.current,
         style: darkMap ? DARK_STYLE : LIGHT_STYLE,
         center,
@@ -225,7 +226,7 @@ export default function LiveMap({
 
       if (first) {
         const markerEl = createAvatarElement(profileImageUrl);
-        const marker = new maplibregl.Marker({ element: markerEl, anchor: 'center' })
+        const marker = new maplibreglModule.Marker({ element: markerEl, anchor: 'center' })
           .setLngLat([Number(first.lng), Number(first.lat)])
           .addTo(map);
         markerRef.current = marker;
@@ -248,7 +249,7 @@ export default function LiveMap({
         }
 
         // Re-popula marcadores de membros após troca de estilo do mapa
-        syncMemberMarkers(map, maplibregl, membersRef.current, memberMarkersRef.current);
+        syncMemberMarkers(map, maplibreglModule, membersRef.current, memberMarkersRef.current);
       });
     });
 
@@ -283,10 +284,10 @@ export default function LiveMap({
     const target: [number, number] = [Number(latest.lng), Number(latest.lat)];
 
     if (!markerRef.current) {
-      import('maplibre-gl').then(({ default: maplibregl }) => {
+      import('maplibre-gl').then((maplibreglModule) => {
         if (!mapRef.current || markerRef.current) return;
         const markerEl = createAvatarElement(profileImageUrl);
-        const marker = new maplibregl.Marker({ element: markerEl, anchor: 'center' })
+        const marker = new maplibreglModule.Marker({ element: markerEl, anchor: 'center' })
           .setLngLat(target)
           .addTo(mapRef.current);
         markerRef.current = marker;
@@ -340,9 +341,9 @@ export default function LiveMap({
   // ── Sincroniza marcadores de membros de grupo ───────────────────────────────
   useEffect(() => {
     if (!mapRef.current) return;
-    import('maplibre-gl').then(({ default: maplibregl }) => {
+    import('maplibre-gl').then((maplibreglModule) => {
       if (!mapRef.current) return;
-      syncMemberMarkers(mapRef.current, maplibregl, groupMembers, memberMarkersRef.current);
+      syncMemberMarkers(mapRef.current, maplibreglModule, groupMembers, memberMarkersRef.current);
     });
   }, [groupMembers]);
 
